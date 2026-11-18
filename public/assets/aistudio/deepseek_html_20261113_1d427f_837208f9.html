@@ -1,0 +1,2491 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CEP – Gestion des candidats</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;background:#eef2f7;color:#2c3e50;min-height:100vh}
+  header{background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;padding:22px 30px;box-shadow:0 3px 8px rgba(0,0,0,.15)}
+  header h1{font-size:22px;letter-spacing:.3px}
+  header p{opacity:.85;font-size:13px;margin-top:4px}
+  main{padding:25px 30px 60px;max-width:1400px;margin:0 auto}
+  .card{background:#fff;border-radius:12px;padding:22px;box-shadow:0 2px 10px rgba(0,0,0,.06);margin-bottom:20px}
+  .card h2{font-size:17px;color:#1e3c72;margin-bottom:15px;border-bottom:2px solid #eef2f7;padding-bottom:10px}
+  .card h2 small{font-weight:400;color:#7f8c8d;font-size:12px;margin-left:8px}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px 18px}
+  .field label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px}
+  .field input,.field select{width:100%;padding:8px 10px;border:1px solid #ccd5e0;border-radius:6px;font-size:14px;background:#fff}
+  .field input:focus,.field select:focus{outline:none;border-color:#2a5298;box-shadow:0 0 0 2px rgba(42,82,152,.15)}
+  .field .helper{font-size:11px;color:#95a5a6;margin-top:2px}
+  .docs-section{margin-top:22px;padding-top:18px;border-top:2px dashed #dde3ec}
+  .docs-section h3{font-size:14px;color:#1e3c72;margin-bottom:12px}
+  .docs-section h3 small{font-weight:400;color:#7f8c8d;font-size:11.5px}
+  .docs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px}
+  .doc-item{background:#f9fbfd;border:1px solid #dde3ec;border-radius:6px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center}
+  .doc-item .doc-name{font-size:12.5px;font-weight:600;color:#444;line-height:1.3}
+  .doc-item .doc-name small{display:block;font-weight:400;color:#95a5a6;font-size:11px}
+  .doc-item .doc-statut{font-size:11px;padding:2px 9px;border-radius:10px;background:#eee;color:#666;white-space:nowrap;font-weight:600}
+  .doc-item .doc-statut.ok{background:#d5f5e3;color:#1e8449}
+  .doc-item .doc-statut.manquant{background:#fadbd8;color:#a93226}
+  .doc-item .doc-statut.facultatif{background:#eaecee;color:#7f8c8d}
+  .doc-item input[type=file]{grid-column:1 / -1;font-size:11.5px;padding:4px 0}
+  .doc-item .doc-preview{grid-column:1 / -1;font-size:11px;color:#555;min-height:14px}
+  .btn{padding:9px 18px;border:none;border-radius:7px;cursor:pointer;font-size:14px;font-weight:500;transition:.2s;display:inline-flex;align-items:center;gap:6px}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn-primary{background:#2a5298;color:#fff}.btn-primary:hover{background:#1e3c72}
+  .btn-success{background:#27ae60;color:#fff}.btn-success:hover{background:#1e8449}
+  .btn-danger{background:#e74c3c;color:#fff}.btn-danger:hover{background:#c0392b}
+  .btn-neutral{background:#dde5ef;color:#2c3e50}.btn-neutral:hover{background:#c9d5e6}
+  .btn-warning{background:#f39c12;color:#fff}.btn-warning:hover{background:#d68910}
+  .btn-sm{padding:5px 10px;font-size:12px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+  .toolbar input{padding:9px 12px;border:1px solid #ccd5e0;border-radius:7px;font-size:14px;width:250px}
+  .toolbar input:focus{outline:none;border-color:#2a5298}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:9px 10px;text-align:left;border-bottom:1px solid #eef2f7}
+  th{background:#f4f7fb;color:#1e3c72;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.3px}
+  tr:hover td{background:#f9fbfd}
+  .table-wrap{overflow-x:auto;border-radius:8px;border:1px solid #eef2f7;margin-bottom:15px}
+  .empty{text-align:center;padding:40px;color:#98a6b5;font-style:italic}
+  .badge{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:600}
+  .badge-m{background:#d6eaf8;color:#21618c}.badge-f{background:#fadbd8;color:#a93226}
+  .badge-eg{background:#d5f5e3;color:#1e8449}.badge-et{background:#fdebd0;color:#b9770e}
+  .badge-none{background:#eaecee;color:#7f8c8d}
+  .badge-pup{background:#f9e79f;color:#7d6608}
+  .badge-libre{background:#e8daef;color:#6c3483}
+  .badge-doc-ok{background:#d5f5e3;color:#1e8449}
+  .badge-doc-miss{background:#fadbd8;color:#a93226}
+  .stats{display:flex;gap:15px;flex-wrap:wrap;margin-bottom:18px}
+  .stat{background:#f4f7fb;border-radius:10px;padding:12px 20px;min-width:150px}
+  .stat .n{font-size:22px;font-weight:700;color:#2a5298}
+  .stat .l{font-size:12px;color:#7f8c8d;text-transform:uppercase;letter-spacing:.4px}
+  .tabs{display:flex;gap:4px;background:#fff;padding:0 30px;border-bottom:1px solid #dbe3ee;position:sticky;top:0;z-index:25;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow-x:auto}
+  .tab-btn{padding:13px 20px;border:none;border-bottom:3px solid transparent;background:transparent;cursor:pointer;font-size:14px;font-weight:600;color:#5b6b7f;transition:.15s;white-space:nowrap}
+  .tab-btn:hover{color:#1e3c72;background:#f4f7fb}
+  .tab-btn.active{color:#1e3c72;border-bottom-color:#2a5298}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+  .sub-tabs{display:flex;gap:6px;margin-bottom:15px;border-bottom:1px solid #dbe3ee;padding-bottom:10px;flex-wrap:wrap}
+  .sub-tab-btn{padding:8px 15px;border:1px solid #ccd5e0;background:#fff;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;color:#5b6b7f;transition:.15s}
+  .sub-tab-btn:hover{background:#f4f7fb;color:#1e3c72}
+  .sub-tab-btn.active{background:#2a5298;color:#fff;border-color:#2a5298}
+  .sub-tab-panel{display:none}
+  .sub-tab-panel.active{display:block}
+  .params-intro{font-size:13px;color:#7f8c8d;margin:-6px 0 18px;line-height:1.5}
+  .param-groupe{border:1px solid #e3e9f2;border-radius:10px;padding:16px 18px 18px;margin-bottom:16px;background:#fbfcfe}
+  .param-groupe legend{padding:0 8px;font-size:12.5px;font-weight:700;color:#1e3c72;text-transform:uppercase;letter-spacing:.4px}
+  .param-groupe .form-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+  .param-image .param-boite{display:flex;align-items:center;gap:12px;border:1px dashed #ccd5e0;border-radius:8px;padding:8px;background:#fff;min-height:64px}
+  .param-image .param-vignette{width:110px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;background:#f4f7fb;border-radius:6px;overflow:hidden}
+  .param-image .param-vignette img{max-width:100%;max-height:100%;object-fit:contain}
+  .param-image .param-vignette span{font-size:10.5px;color:#98a6b5;text-align:center;padding:0 4px}
+  .param-image .param-btns{display:flex;flex-direction:column;gap:6px}
+  .param-image .param-btns label{margin:0;font-size:12px;font-weight:600;color:#2a5298;cursor:pointer;text-align:center;display:inline-flex;justify-content:center}
+  .params-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:6px}
+  .params-etat{font-size:12.5px;color:#27ae60;font-weight:600;opacity:0;transition:.2s}
+  .params-etat.visible{opacity:1}
+  .param-verrou{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fff8e6;border:1px solid #f0d9a8;border-radius:8px;padding:10px 14px;margin-bottom:18px;font-size:13px;color:#8a4b00;line-height:1.4}
+  .param-verrou.deverrouille{background:#eaf7ef;border-color:#bfe3cb;color:#1b7f3b}
+  .param-verrou b{font-weight:700}
+  .param-verrouille,.param-verrouille:focus{background:#f1f4f8 !important;color:#5b6b7f;cursor:not-allowed;border-color:#dbe3ee}
+  .field .cadenas{font-size:11px;margin-left:4px;opacity:.8}
+  #pv-table input[type=text]{width:100%;padding:7px 10px;border:1px solid #ccd5e0;border-radius:6px;font-size:14px;font-family:inherit}
+  #pv-table input[type=text]:focus{outline:none;border-color:#2a5298;box-shadow:0 0 0 2px rgba(42,82,152,.15)}
+  #pv-table-wrap{max-height:600px;overflow:auto}
+  #doc-preview{display:none}
+  #doc-preview .preview-header{position:sticky;top:49px;z-index:30;background:#fff;border-left:4px solid #2a5298;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  #doc-preview .preview-header h2{margin:0;padding:0;border:none;font-size:15px;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #doc-preview .preview-header .actions{display:flex;gap:8px}
+  #doc-preview-content{padding:0}
+  #print-list-area{display:none}
+  @page chemise{size:A4 landscape;margin:0}
+  .chemise-page{page:chemise;position:relative;width:297mm;height:210mm;background:#fff;color:#000;font-family:Calibri,Carlito,"Segoe UI",Arial,sans-serif;font-size:11pt;overflow:hidden;box-sizing:border-box;page-break-after:always;break-after:page}
+  .chemise-page *{box-sizing:border-box}
+  .chemise-page .rose{border:.55mm solid #d9a5a5}
+  .chemise-page::after{content:'';position:absolute;left:148.5mm;top:0;bottom:0;border-left:.5mm solid #d9a5a5;z-index:10}
+  .chemise-page .titre{position:absolute;left:158.5mm;top:16mm;width:133.5mm;height:7.7mm;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11pt;white-space:nowrap}
+  .chemise-page .cadre{position:absolute;left:158.5mm;top:26.2mm;width:133.5mm;height:96.9mm}
+  .chemise-page .centre{position:absolute;left:21.35mm;top:.3mm;width:90.8mm;text-align:center;font-weight:700}
+  .chemise-page .centre .lib{height:6.6mm;background:#d9d9d9;border:.55mm solid #d9a5a5;display:flex;align-items:center;justify-content:center}
+  .chemise-page .centre .val{height:6.9mm;border:.55mm solid #d9a5a5;border-top:0;display:flex;align-items:center;justify-content:center;text-transform:uppercase}
+  .chemise-page .lib-col{position:absolute;top:16.3mm;height:5mm;text-align:center;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .chemise-page .case{position:absolute;top:22.1mm;height:8mm;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .chemise-page .c-points{left:.5mm;width:38mm}
+  .chemise-page .c-moy{left:40.5mm;width:35mm}
+  .chemise-page .c-apt{left:77.5mm;width:55mm}
+  .chemise-page .lib-nom{position:absolute;top:77.3mm;height:5mm;display:flex;align-items:center;justify-content:center}
+  .chemise-page .nom-box{position:absolute;top:82.5mm;height:14.4mm;padding-top:2mm;text-align:center;font-weight:700}
+  .chemise-page .n-nom{left:.5mm;width:55mm}
+  .chemise-page .n-pre{left:57.5mm;width:75mm}
+  .chemise-page .ligne{position:absolute;height:5mm;display:flex;align-items:baseline;gap:1.6mm;white-space:nowrap}
+  .chemise-page .ligne b{font-weight:700}
+  .chemise-page .ligne .v{flex:1;min-width:0;border-bottom:.4mm dotted #444;padding:0 1.5mm .2mm;overflow:hidden;text-overflow:ellipsis}
+  .chemise-page .ligne .v.opt{flex:0 0 17mm}
+  .chemise-page .ligne .v.res{flex:0 0 47.7mm}
+  .chemise-page .ligne .v.petit{font-size:8.5pt;text-transform:uppercase}
+  .chemise-page .cadre .ligne{left:1.4mm;right:1.7mm}
+  .chemise-page .f-option{top:33.1mm}.chemise-page .f-ecole{top:41.7mm}
+  .chemise-page .f-ceb{top:50.8mm}.chemise-page .f-comm{top:59mm}
+  .chemise-page .f-prov{top:67.6mm}
+  .chemise-page .adr-titre{position:absolute;left:158.5mm;width:133.5mm;top:128.3mm;text-align:center;font-weight:700;text-decoration:underline}
+  .chemise-page .adr{left:158.5mm;right:5mm}
+  .chemise-page .a-lieu{top:135.5mm}.chemise-page .a-comm{top:143mm}.chemise-page .a-prov{top:150.1mm}
+  .chemise-page .etabs{position:absolute;left:158.5mm;top:159.8mm;width:133.5mm;height:33.1mm}
+  .chemise-page .etabs .titre2{position:absolute;left:0;right:0;top:2mm;text-align:center;font-weight:700;text-decoration:underline}
+  .chemise-page .etabs .ligne{left:1.4mm;right:1.7mm}
+  .chemise-page .e1{top:9.6mm}.chemise-page .e2{top:18mm}.chemise-page .e3{top:26.4mm}
+  @page certificat{size:A4 portrait;margin:0}
+  .certif-page{page:certificat;position:relative;width:210mm;height:297mm;background:#fff;color:#000;font-family:Tahoma,Verdana,"DejaVu Sans",Arial,sans-serif;font-size:9.5pt;overflow:hidden;box-sizing:border-box;page-break-after:always;break-after:page}
+  .certif-page *{box-sizing:border-box}
+  .certif-page .certif{position:absolute;left:13.7mm;width:182.6mm;height:124.7mm;border:.55mm solid #d9a5a5}
+  .certif-page .certif.haut{top:15.4mm}.certif-page .certif.bas{top:155.6mm}
+  .certif .entete{position:absolute;left:11mm;top:1.4mm;width:64mm;text-align:center;font-size:9pt;line-height:4.5mm;text-transform:uppercase}
+  .certif .entete .tirets{width:22mm;margin:0 auto;border-bottom:.35mm dashed #444;height:1.5mm}
+  .certif .entete .tel{font-size:7pt;line-height:3mm;text-transform:none}
+  .certif .armoiries{position:absolute;left:88mm;top:1.8mm;width:17mm;height:18mm}
+  .certif .armoiries img{width:100%;height:100%;object-fit:contain}
+  .certif .armoiries .vide{width:100%;height:100%;border:.3mm dashed #aaa;border-radius:50%;font-size:6pt;color:#aaa;display:flex;align-items:center;justify-content:center;text-align:center}
+  .certif .annee{position:absolute;right:2mm;top:1.6mm;font-size:9pt}
+  .certif .lieu-date{position:absolute;right:2.7mm;top:20.2mm;font-size:9pt}
+  .certif .titre{position:absolute;left:0;right:0;top:27mm;text-align:center}
+  .certif .titre span{display:inline-block;border:.4mm solid #000;padding:.8mm 2.2mm;font-weight:700;font-size:13pt;letter-spacing:0;white-space:nowrap}
+  .certif .l{position:absolute;left:1.9mm;right:1.9mm;height:5mm;display:flex;align-items:baseline;gap:1.4mm;white-space:nowrap}
+  .certif .l .v{flex:1;min-width:0;border-bottom:.4mm dotted #444;padding:0 1.5mm .2mm;overflow:hidden;text-overflow:ellipsis}
+  .certif .l .v.date{flex:0 0 59mm}
+  .certif .l .v.dinsc{flex:0 0 26mm;text-align:center;padding:0 .5mm .2mm;text-overflow:clip}
+  .certif .l .v.mat{flex:0 0 26mm;text-align:center}
+  .certif .l1{top:36.1mm;left:27.8mm}
+  .certif .l2{top:43.8mm}.certif .l3{top:51.5mm}.certif .l4{top:58.5mm}
+  .certif .l5{top:66.2mm}.certif .l6{top:75.1mm}.certif .l7{top:81.6mm}
+  .certif .l8{top:89mm;left:21.6mm}
+  .certif .dir{position:absolute;left:121.3mm;width:40mm;text-align:center}
+  .certif .dir .t{position:absolute;top:97mm;width:100%}
+  .certif .dir .sig{position:absolute;top:99mm;left:0;width:40mm;height:16mm}
+  .certif .dir .sig img{width:100%;height:100%;object-fit:contain}
+  .certif .dir .nom{position:absolute;top:113.6mm;width:100%;font-size:8pt;font-weight:700}
+  .certif .dir .grade{position:absolute;top:117.9mm;width:100%;font-size:6.5pt;font-style:italic}
+  .certif .dir .deco{position:absolute;top:120.9mm;left:-10mm;width:60mm;text-align:center;font-size:5.8pt;font-style:italic;line-height:1.05}
+  @page fiche{size:A4 portrait;margin:0}
+  .fiche-page{page:fiche;position:relative;width:210mm;height:297mm;background:#fff;color:#000;font-family:Verdana,"DejaVu Sans",Tahoma,sans-serif;font-size:9pt;overflow:hidden;box-sizing:border-box;page-break-after:always;break-after:page}
+  .fiche-page *{box-sizing:border-box}
+  .fiche-page .gris{border:.8mm solid #a6a6a6}
+  .fiche-page .hd{position:absolute;top:14.8mm;height:21.1mm;font-family:Calibri,Carlito,"Segoe UI",Arial,sans-serif;font-weight:700;text-align:center}
+  .fiche-page .hd-titre{left:14.3mm;width:91.7mm;display:flex;flex-direction:column;justify-content:center;font-size:13pt;line-height:6.2mm}
+  .fiche-page .hd-pv{left:108.3mm;padding-top:1.6mm;font-size:13pt}
+  .fiche-page .hd-pv span{display:block;font-weight:400;font-size:11pt;margin-top:5mm}
+  .fiche-page .hd-pv.eg{width:49.5mm}
+  .fiche-page .hd-pv.eftp{width:34.7mm}
+  .fiche-page .hd-opt.eg{left:159.8mm;width:35.4mm;font-size:12pt}
+  .fiche-page .hd-opt.eg .o1{padding-top:1.8mm}
+  .fiche-page .hd-opt.eg .o2{padding-top:2.4mm}
+  .fiche-page .hd-opt.eftp{left:144.6mm;width:53.3mm;font-size:11pt;padding:0}
+  .fiche-page .hd-opt.eftp>div{border-bottom:.5mm solid #a6a6a6;display:flex;align-items:center;justify-content:center}
+  .fiche-page .hd-opt.eftp .r1{height:7.5mm}
+  .fiche-page .hd-opt.eftp .r1 .c1{width:16.6mm;height:100%;background:#d9d9d9;border-right:.5mm solid #a6a6a6;display:flex;align-items:center;justify-content:center}
+  .fiche-page .hd-opt.eftp .r1 .c2{flex:1}
+  .fiche-page .hd-opt.eftp .r2{height:6.1mm;background:#d9d9d9}
+  .fiche-page .hd-opt.eftp .r3{height:7.5mm;border-bottom:0;justify-content:flex-start;padding-left:1.2mm;font-weight:400;font-size:9pt}
+  .fiche-page .circ{position:absolute;left:0;right:0;top:38.6mm;text-align:center;font-family:"Times New Roman",Cambria,serif;font-weight:700;font-size:14pt}
+  .fiche-page .l{position:absolute;left:14.1mm;right:14.1mm;height:5mm;display:flex;align-items:baseline;gap:1.5mm;white-space:nowrap}
+  .fiche-page .l b{font-weight:700}
+  .fiche-page .l .v{flex:1;min-width:0;border-bottom:.4mm dotted #333;padding:0 1.5mm .2mm;overflow:hidden;text-overflow:ellipsis}
+  .fiche-page .l .v.naiss{flex:0 0 48mm;text-align:center}
+  .fiche-page .l .v.nat{flex:0 0 61mm}
+  .fiche-page .l .v.reg{flex:0 0 75mm}
+  .fiche-page .l .sep{margin-left:2mm}
+  .fiche-page .l.nom{top:47.4mm}.fiche-page .l.pre{top:55.4mm}.fiche-page .l.nai{top:63.1mm}
+  .fiche-page .l.nat{top:70.6mm}.fiche-page .l.eco{top:77.6mm}.fiche-page .l.reg{top:85.3mm}
+  .fiche-page .l.com{top:92.6mm}
+  .fiche-page .l.dero{top:101mm}
+  .fiche-page .an{left:19.3mm;right:auto;width:46mm}
+  .fiche-page .an .v{flex:0 0 21.6mm}
+  .fiche-page .duree{position:absolute;left:84.4mm;top:123.7mm;width:105.8mm;height:7.3mm;border:.5mm solid #a6a6a6;display:flex;align-items:center;gap:1.5mm;padding:0 3mm;white-space:nowrap}
+  .fiche-page .duree .v{flex:0 0 15mm;text-align:center;border-bottom:.4mm dotted #333}
+  .fiche-page .decl{left:20.4mm}
+  .fiche-page .rayee{text-decoration:line-through}
+  .fiche-page .decl .blanc{display:inline-block;min-width:16mm;text-align:center}
+  .fiche-page .marque{position:absolute;font-size:10.5pt}
+  .fiche-page .l.titu{top:155.7mm}.fiche-page .l.cand{top:161.6mm}
+  .fiche-page .l.pere{top:168.2mm}.fiche-page .l.mere{top:174.6mm}
+  .fiche-page .l.res1{top:182.1mm}.fiche-page .l.res2{top:189.3mm;left:15.9mm}.fiche-page .l.res3{top:196.4mm;left:15.9mm}
+  .fiche-page .etabs{position:absolute;left:15.4mm;top:204.1mm;width:179.1mm;height:32.7mm;border:.8mm solid #a6a6a6}
+  .fiche-page .etabs .t{position:absolute;left:0;right:0;top:.5mm;text-align:center;font-weight:700;text-decoration:underline}
+  .fiche-page .etabs .l{left:9.1mm;right:8.4mm}
+  .fiche-page .etabs .l .v{font-size:8pt}
+  .fiche-page .etabs .e1{top:7.5mm;right:27mm}.fiche-page .etabs .e2{top:14.8mm}.fiche-page .etabs .e3{top:21.8mm}
+  .fiche-page .etabs .m2{position:absolute;left:172.5mm;top:14.5mm;font-size:10.5pt}
+  .fiche-page .sig-g{position:absolute;left:15.4mm;top:239.3mm}
+  .fiche-page .sig-d{position:absolute;right:15mm;top:239.3mm}
+  .fiche-page .certifie{position:absolute;left:0;right:0;top:248.3mm;text-align:center}
+  .fiche-page .notes{position:absolute;left:14.3mm;top:254.9mm;width:81.5mm;height:17mm;border:.5mm solid #a6a6a6;padding:.8mm 1.2mm;font-size:7.5pt;line-height:3.6mm}
+  .fiche-page .notes .s{padding-left:1.8mm}
+  .fiche-page .dir{position:absolute;left:121mm;width:60mm;text-align:center}
+  .fiche-page .dir .sig{position:absolute;left:0;top:253.5mm;width:60mm;height:16mm}
+  .fiche-page .dir .sig img{width:100%;height:100%;object-fit:contain}
+  .fiche-page .dir .nom{position:absolute;width:100%;top:269.4mm;font-weight:700;text-decoration:underline;font-size:8.5pt}
+  .fiche-page .dir .grade{position:absolute;width:100%;top:274.2mm;font-style:italic;font-size:7.5pt}
+  .fiche-page .dir .deco{position:absolute;width:100%;top:278.2mm;font-style:italic;font-size:6.8pt;line-height:1.05}
+  @page chemiseCEP{size:A4 landscape;margin:0}
+  .chemise-cep-page{page:chemiseCEP;position:relative;width:297mm;height:210mm;background:#fff;color:#000;font-family:Calibri,Carlito,"Segoe UI",Arial,sans-serif;font-size:11pt;overflow:hidden;box-sizing:border-box;page-break-after:always;break-after:page}
+  .chemise-cep-page *{box-sizing:border-box}
+  .chemise-cep-page::after{content:'';position:absolute;left:148.5mm;top:0;bottom:0;border-left:.5mm solid #d9a5a5;z-index:10}
+  .chemise-cep-page .bande{position:absolute;left:158.5mm;right:5mm;top:0;height:2.2mm;border-top:.9mm solid #d6252b;border-bottom:.3mm solid #333}
+  .chemise-cep-page .titre{position:absolute;left:158.5mm;top:27.7mm;width:133.5mm;height:17.3mm;border:.7mm solid #dba7a7;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:14.5pt;line-height:1.25;text-align:center}
+  .chemise-cep-page .cadre{position:absolute;left:158.5mm;top:48mm;width:133.5mm;height:152mm;border:.7mm solid #dba7a7}
+  .chemise-cep-page .centre{position:absolute;left:19.75mm;top:12.5mm;width:94mm;height:15.5mm;border:.6mm solid #777;text-align:center;font-weight:700;font-size:11pt}
+  .chemise-cep-page .centre .lib{background:#d9d9d9;height:50%;display:flex;align-items:center;justify-content:center;border-bottom:.6mm solid #777}
+  .chemise-cep-page .centre .val{height:50%;display:flex;align-items:center;justify-content:center;text-transform:uppercase}
+  .chemise-cep-page .champ{position:absolute;left:1mm;right:2mm;display:flex;align-items:baseline;gap:2mm;font-size:11pt;white-space:nowrap}
+  .chemise-cep-page .champ b{font-weight:700}
+  .chemise-cep-page .champ .v{flex:1;min-width:0;border-bottom:.45mm dotted #444;padding:0 1.5mm .3mm;font-size:11pt;overflow:hidden;text-overflow:ellipsis}
+  .chemise-cep-page .champ .v.court{flex:0 0 12mm;text-align:center}
+  .chemise-cep-page .f-pv{top:47mm}
+  .chemise-cep-page .f-nom{top:68mm}
+  .chemise-cep-page .f-prenoms{top:88.5mm}
+  .chemise-cep-page .f-sexe{top:111mm}
+  .chemise-cep-page .f-ecole{top:132mm}
+  @page attestation{size:A4 portrait;margin:0}
+  .attestation-page{page:attestation;position:relative;width:210mm;height:297mm;padding:22mm 20mm;background:#fff;color:#000;overflow:hidden;box-sizing:border-box;font-family:Arial,Helvetica,"Segoe UI",sans-serif;font-size:10.5pt;line-height:1.55;page-break-after:always;break-after:page}
+  .attestation-page *{box-sizing:border-box}
+  .certif .l .v{font-weight:700}
+  .certif .l .v.date,.certif .l .v.dinsc,.certif .l .v.mat{font-weight:700}
+  .fiche-page .l .v,.fiche-page .hd-pv span,.fiche-page .hd-opt.eg .o2,.fiche-page .hd-opt.eftp .c2,.fiche-page .hd-opt.eftp .r3,.fiche-page .etabs .l .v,.fiche-page .duree .v{font-weight:700}
+  .chemise-page .ligne .v,.chemise-page .centre .val,.chemise-page .case,.chemise-page .nom-box{font-weight:700}
+  .chemise-cep-page .champ .v,.chemise-cep-page .centre .val{font-weight:700}
+  #md-app{--md-bleu:#0d47a1;--md-bleu-fond:#e8f1fb;--md-bord:#d3dae3;--md-fond:#f3f5f8;--md-texte:#1c2530;--md-doux:#5b6775;--md-alerte:#8a4b00;--md-alerte-fond:#fff3dc;--md-ok:#1b7f3b;max-width:none;margin:0;padding:0;color:var(--md-texte);font-family:"Segoe UI",Calibri,Carlito,Arial,sans-serif}
+  #md-app *{box-sizing:border-box}
+  #md-app .md-entete p{margin:0 0 16px;color:var(--md-doux);font-size:14px}
+  #md-app .md-grille{display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start}
+  #md-app .md-carte{background:#fff;border:1px solid var(--md-bord);border-radius:10px;padding:16px}
+  #md-app .md-carte h2{margin:0 0 12px;font-size:16px;display:flex;align-items:center;gap:8px;color:var(--md-texte);border:none;padding:0}
+  #md-app .md-num{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--md-bleu);color:#fff;font-size:12px;align-items:center;justify-content:center;flex:none}
+  #md-app .md-sep{margin:18px 0 12px}
+  #md-recherche{width:100%;padding:9px 11px;font-size:14px;border:1px solid var(--md-bord);border-radius:6px}
+  .md-filtres{display:flex;gap:6px;margin:10px 0}
+  .md-filtres button{flex:1;padding:6px 8px;font-size:13px;border:1px solid var(--md-bord);background:#fff;border-radius:6px;cursor:pointer;color:var(--md-texte)}
+  .md-filtres button[aria-pressed="true"]{background:var(--md-bleu);border-color:var(--md-bleu);color:#fff}
+  .md-outils-liste{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--md-doux);margin-bottom:6px;gap:8px}
+  .md-outils-liste label{display:flex;gap:6px;align-items:center;cursor:pointer}
+  #md-candidats{list-style:none;margin:0;padding:0;max-height:420px;overflow:auto;border:1px solid var(--md-bord);border-radius:8px}
+  .md-cand{display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid #edf0f4}
+  .md-cand:last-child{border-bottom:0}
+  .md-cand.actif{background:var(--md-bleu-fond);box-shadow:inset 3px 0 0 var(--md-bleu)}
+  .md-cand-btn{flex:1;text-align:left;background:none;border:0;padding:7px 2px;cursor:pointer;font:inherit;color:inherit;min-width:0}
+  .md-cand-btn .nom{display:block;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .md-cand-btn .sous{display:block;font-size:12px;color:var(--md-doux)}
+  .md-badge{font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;background:#e7eef7;color:var(--md-bleu);flex:none}
+  .md-badge.eftp{background:#fdeacc;color:#8a4b00}
+  .md-vide{color:var(--md-doux);text-align:center;padding:28px 10px;font-size:14px;margin:0}
+  .md-types{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .md-type{text-align:left;padding:12px;border:2px solid var(--md-bord);border-radius:8px;background:#fff;cursor:pointer;font:inherit;color:var(--md-texte)}
+  .md-type strong{display:block;font-size:14px}
+  .md-type span{display:block;font-size:12px;color:var(--md-doux);margin-top:2px}
+  .md-type[aria-pressed="true"]{border-color:var(--md-bleu);background:var(--md-bleu-fond)}
+  .md-statut{margin:12px 0 0;padding:10px 12px;border-radius:8px;background:var(--md-bleu-fond);border-left:4px solid var(--md-bleu);font-size:14px}
+  .md-statut b{color:var(--md-bleu)}
+  .md-alerte{margin:10px 0 0;padding:10px 12px;border-radius:8px;background:var(--md-alerte-fond);border-left:4px solid #e08a00;color:var(--md-alerte);font-size:13px}
+  .md-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+  .md-btn{padding:10px 16px;font:inherit;font-weight:600;font-size:14px;border-radius:6px;border:1px solid var(--md-bleu);background:#fff;color:var(--md-bleu);cursor:pointer}
+  .md-btn.primaire{background:var(--md-bleu);color:#fff}
+  .md-btn:disabled{opacity:.45;cursor:not-allowed}
+  .md-aide{font-size:12px;color:var(--md-doux)}
+  .md-apercu{position:relative;background:#dfe4ea;border-radius:8px;overflow:hidden;min-height:200px}
+  #md-echelle{position:absolute;left:12px;top:12px;transform-origin:top left}
+  #md-echelle>*{box-shadow:0 2px 10px rgba(0,0,0,.25)}
+  #md-app :focus-visible{outline:3px solid #7fb2ff;outline-offset:1px}
+  @media (max-width:900px){#md-app .md-grille{grid-template-columns:1fr}.md-types{grid-template-columns:1fr}#md-candidats{max-height:260px}}
+
+  /* --- CARTES D'IDENTITÉ SCOLAIRE (10 par page A4, recto / verso) --- */
+  @page cartes { size: A4 portrait; margin: 0; }
+  #cartes-print { position: fixed; left: -10000px; top: 0; visibility: hidden; }
+  .cartes-feuille { page: cartes; position: relative; width: 210mm; height: 297mm; background: #fff; overflow: hidden; break-after: page; page-break-after: always; }
+  .cartes-feuille:last-child { break-after: auto; page-break-after: auto; }
+  .carte-svg { position: absolute; display: block; }
+  .cartes-layout { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(300px, 1.2fr); gap: 18px; align-items: start; }
+  @media (max-width: 860px) { .cartes-layout { grid-template-columns: 1fr; } }
+  .cartes-liste { max-height: 520px; overflow: auto; border: 1px solid #dde3ec; border-radius: 8px; }
+  .cartes-liste table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .cartes-liste th, .cartes-liste td { padding: 6px 8px; border-bottom: 1px solid #edf0f4; text-align: left; }
+  .cartes-liste th { position: sticky; top: 0; background: #f4f7fb; z-index: 1; }
+  .cartes-liste tr.actif td { background: #eaf1fb; }
+  .cartes-liste tbody tr { cursor: pointer; }
+  .cartes-apercu { display: flex; flex-direction: column; gap: 14px; }
+  .cartes-apercu figure { margin: 0; }
+  .cartes-apercu figcaption { font-size: 12px; font-weight: 600; color: #5b6b7f; margin-bottom: 4px; }
+  .cartes-apercu .carte-svg { position: static; width: 100%; max-width: 440px; height: auto; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.18); }
+  .cartes-apercu .photo-vide { stroke: #b8c2d0; stroke-dasharray: .8 .6; fill: none; stroke-width: .15; }
+  @media print { .photo-vide { display: none; } }
+  #md-print{display:none}
+  @media print{
+    body{background:#fff}
+    header,.no-print,.tabs{display:none !important}
+    main{padding:0;max-width:none}
+    .card{box-shadow:none;padding:0;border:none}
+    body>*:not(#print-list-area):not(#md-print):not(#cartes-print){display:none !important}
+    #cartes-print{position:static !important;left:auto !important;visibility:visible !important}
+    #print-list-area{display:block !important;width:100%;color:#000}
+    #print-list-area table{width:100%;border-collapse:collapse;margin:10px 0 20px 0;font-size:10pt;font-family:Arial,sans-serif}
+    #print-list-area th,#print-list-area td{border:1px solid #000;padding:6px;text-align:left}
+    #print-list-area th{background:#f0f0f0 !important;font-weight:bold;text-align:center;text-transform:uppercase;font-size:9pt;-webkit-print-color-adjust:exact}
+    #md-print{display:block}
+    #md-print>:last-child{break-after:auto;page-break-after:auto}
+    -webkit-print-color-adjust:exact !important;
+    print-color-adjust:exact !important;
+    color-adjust:exact !important;
+    @page{size:A4 portrait;margin:15mm}
+  }
+  .toast{position:fixed;bottom:25px;right:25px;padding:12px 20px;border-radius:8px;color:#fff;font-weight:500;transform:translateY(20px);opacity:0;transition:.3s;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast.success{background:#27ae60}.toast.error{background:#e74c3c}.toast.info{background:#2a5298}
+  .classe-card{border:1px solid #dde3ec;border-radius:8px;margin-bottom:10px;background:#fff;overflow:hidden}
+  .classe-card.ouverte{border-color:#2a5298;box-shadow:0 2px 8px rgba(42,82,152,.08)}
+  .classe-head{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none}
+  .classe-head:hover{background:#f4f7fb}
+  .classe-nom{font-weight:700;color:#1e3c72;font-size:15px;min-width:70px}
+  .classe-count{color:#7f8c8d;font-size:12px;flex:1}
+  .classe-toggle{color:#2a5298;font-size:12px}
+  .classe-body{border-top:1px solid #eef2f7;padding:14px 16px}
+  .classe-selection{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;padding:12px 14px;background:#f4f7fb;border:1px solid #dde3ec;border-radius:8px}
+  .classe-selection label{font-size:13px;font-weight:700;color:#1e3c72}
+  .classe-selection select{padding:8px 10px;border:1px solid #ccd5e0;border-radius:6px;font-size:14px;background:#fff;min-width:150px}
+  .classe-selection select:focus{outline:none;border-color:#2a5298;box-shadow:0 0 0 2px rgba(42,82,152,.15)}
+  .classe-selection-info{font-size:12px;color:#7f8c8d}
+  .classe-verrouillee{background:#eef2f7 !important;color:#1e3c72;font-weight:700;cursor:not-allowed;opacity:1}
+  .champ-verrouille{background:#eef2f7;color:#1e3c72;font-weight:700;cursor:not-allowed}
+  .matieres-table{width:100%;border-collapse:collapse;margin-bottom:12px}
+  .matieres-table th,.matieres-table td{padding:6px 8px;border-bottom:1px solid #eef2f7;text-align:left;font-size:13px}
+  .matieres-table th{background:#f4f7fb;font-size:11px;text-transform:uppercase;color:#1e3c72;letter-spacing:.3px}
+  .matieres-table input{width:100%;padding:6px 8px;border:1px solid #ccd5e0;border-radius:5px;font-size:13px}
+  .matieres-table input:focus{outline:none;border-color:#2a5298}
+  .add-matiere-form{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .add-matiere-form input{padding:7px 9px;border:1px solid #ccd5e0;border-radius:5px;font-size:13px}
+  .add-matiere-form input[type=text]{flex:1;min-width:150px}
+  .add-matiere-form input:focus{outline:none;border-color:#2a5298}
+  .eval-matieres-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;padding:10px;background:#f9fbfd;border-radius:8px;min-height:42px;border:1px dashed #ccd5e0}
+  .eval-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:#e8f1fb;border:1px solid #2a5298;border-radius:16px;font-size:12px;color:#1e3c72}
+  .eval-chip b{font-weight:600}
+  .eval-chip small{color:#5b6b7f;font-size:11px}
+  .eval-chip button{background:none;border:none;color:#a93226;cursor:pointer;font-size:14px;padding:0 0 0 2px;line-height:1}
+  .eval-setup{background:#f9fbfd;border:1px dashed #ccd5e0;border-radius:8px;padding:14px;margin-bottom:14px}
+  .eval-setup-title{display:flex;align-items:center;gap:10px;font-weight:700;color:#1e3c72;font-size:13px;margin-bottom:10px}
+  .eval-count{font-weight:600;font-size:11px;color:#2a5298;background:#e8f1fb;border-radius:12px;padding:2px 8px}
+  .eval-choices{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .eval-choice{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;background:#fff;border:1px solid #ccd5e0;border-radius:18px;font-size:12px;color:#34495e;cursor:pointer;user-select:none}
+  .eval-choice input{accent-color:#2a5298;margin:0}
+  .eval-choice b{font-weight:600}
+  .eval-choice small{color:#7f8c8d;font-size:11px}
+  .eval-choice.selected{background:#e8f1fb;border-color:#2a5298;color:#1e3c72}
+  .eval-choice.disabled{opacity:.5;cursor:not-allowed}
+  .eval-setup-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .eval-setup .helper{margin-top:8px;font-size:11px;color:#7f8c8d}
+  .eval-table-wrap{overflow-x:auto;border:1px solid #eef2f7;border-radius:8px;margin-bottom:12px}
+  .eval-table{width:100%;border-collapse:collapse;font-size:13px}
+  .eval-table th,.eval-table td{padding:6px 8px;border-bottom:1px solid #eef2f7;text-align:center}
+  .eval-table th{background:#f4f7fb;font-size:11px;text-transform:uppercase;color:#1e3c72;letter-spacing:.3px}
+  .eval-table tr:hover td{background:#f9fbfd}
+  .eval-table input{width:62px;padding:5px;border:1px solid #ccd5e0;border-radius:4px;text-align:center;font-size:13px}
+  .eval-table input:focus{outline:none;border-color:#2a5298;box-shadow:0 0 0 2px rgba(42,82,152,.15)}
+  .eval-table input.over{border-color:#e74c3c;background:#fdecea}
+  .eval-table .rang{display:inline-flex;width:26px;height:26px;align-items:center;justify-content:center;background:#f4f7fb;border-radius:50%;font-weight:700;color:#2a5298}
+  .mention-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;white-space:nowrap}
+  .mention-tb{background:#d5f5e3;color:#1e8449}
+  .mention-b{background:#d6eaf8;color:#21618c}
+  .mention-ab{background:#e8daef;color:#6c3483}
+  .mention-p{background:#fdebd0;color:#b9770e}
+  .mention-e{background:#fadbd8;color:#a93226}
+  .eval-empty{padding:34px 20px;text-align:center;color:#98a6b5;font-style:italic;line-height:1.6}
+  .eval-stats{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+  .eval-stat{background:#f4f7fb;padding:10px 16px;border-radius:8px;min-width:130px}
+  .eval-stat .n{font-size:20px;font-weight:700;color:#2a5298}
+  .eval-stat .l{font-size:11px;color:#7f8c8d;text-transform:uppercase;letter-spacing:.3px}
+
+  /* --- NOUVEAU : Résultats d'évaluation / liste des admis --- */
+  .eval-resultats{margin-top:30px;padding-top:22px;border-top:2px dashed #dde3ec}
+  .eval-resultats h3{font-size:15px;color:#1e3c72;margin:0 0 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:none;padding:0;text-transform:none;letter-spacing:0;background:none}
+  .eval-resultats h3:not(:first-child){margin-top:26px}
+  .eval-resultats h3 small{font-weight:400;color:#7f8c8d;font-size:12px}
+  .eval-resultats .eval-stats{margin-bottom:20px;gap:10px}
+  .eval-resultats .eval-stats .eval-stat{min-width:120px;padding:10px 14px}
+  .eval-resultats .eval-stat .n{font-size:20px}
+  .eval-resultats .eval-stat.admis .n{color:#1e8449}
+  .eval-resultats .eval-stat.ajourne .n{color:#a93226}
+  .eval-resultats .eval-stat.taux .n{color:#2a5298}
+  .eval-resultats .eval-table td{font-size:13px;padding:7px 10px}
+  .eval-resultats .eval-table th{font-size:11px}
+  .eval-resultats .eval-table .decision-admis{background:#d5f5e3;color:#1e8449;font-weight:700;border-radius:10px;padding:2px 9px;font-size:11px;display:inline-block}
+  .eval-resultats .eval-table .decision-ajourne{background:#fadbd8;color:#a93226;font-weight:700;border-radius:10px;padding:2px 9px;font-size:11px;display:inline-block}
+  .eval-resultats-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  .eval-resultats .eval-empty{padding:20px 10px;font-size:13px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CEP – Gestion des candidats</h1>
+  <p>Inscription · Documents officiels · Évaluations</p>
+</header>
+
+<nav class="tabs no-print" role="tablist">
+  <button type="button" class="tab-btn active" data-tab="tab-liste">📋 Candidats</button>
+  <button type="button" class="tab-btn" data-tab="tab-listes">📊 Listes</button>
+  <button type="button" class="tab-btn" data-tab="tab-pv">🔢 N° PV</button>
+  <button type="button" class="tab-btn" data-tab="tab-cartes">🪪 Cartes scolaires</button>
+  <button type="button" class="tab-btn" data-tab="tab-evaluations">📝 Gestion évaluations</button>
+  <button type="button" class="tab-btn" data-tab="tab-parametres">⚙️ Paramètres</button>
+</nav>
+
+<main>
+  <section id="tab-liste" class="tab-panel active">
+    <div class="card no-print">
+      <h2 id="form-titre">1. Saisie d'un candidat</h2>
+      <form id="form-candidat">
+        <div class="form-grid"></div>
+        <div class="docs-section">
+          <h3>Informations pour les documents officiels <small>(facultatif)</small></h3>
+          <div class="form-grid" id="form-doc-grid"></div>
+        </div>
+        <div class="docs-section">
+          <h3>Documents joints <small>(* = obligatoire)</small></h3>
+          <div class="docs-grid" id="docs-form"></div>
+        </div>
+        <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+          <button type="submit" class="btn btn-primary" id="btn-submit">➕ Ajouter le candidat</button>
+          <button type="button" class="btn btn-neutral" onclick="reinitialiserFormulaire()">↺ Réinitialiser</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card no-print">
+      <h2>2. Importer / exporter</h2>
+      <div class="toolbar">
+        <label class="btn btn-success" style="cursor:pointer">📥 Importer Excel<input type="file" id="import-excel" accept=".xlsx,.xls,.csv" hidden></label>
+        <button type="button" class="btn btn-neutral" onclick="telechargerModele()">⬇️ Modèle Excel</button>
+        <button type="button" class="btn btn-danger" onclick="viderTout()">🗑️ Vider</button>
+      </div>
+      <div class="toolbar" style="margin-top:10px">
+        <button type="button" class="btn btn-primary" onclick="exporterDossiersPDF()">📕 Export PDF</button>
+        <button type="button" class="btn btn-success" onclick="exporterCandidats()">📊 Export Excel</button>
+        <button type="button" class="btn btn-neutral" onclick="exporterDossiersWord()">📄 Export Word</button>
+      </div>
+      <div class="toolbar" style="margin-top:10px;border-top:1px dashed #dde3ec;padding-top:10px">
+        <button type="button" class="btn btn-warning" onclick="exporterJSON()">💾 Sauvegarder JSON</button>
+        <label class="btn btn-warning" style="cursor:pointer;background:#e67e22">📂 Restaurer JSON<input type="file" id="import-json" accept=".json" hidden></label>
+      </div>
+    </div>
+
+    <div class="card no-print">
+      <h2>Candidats enregistrés</h2>
+      <div class="stats">
+        <div class="stat"><div class="n" id="stat-total">0</div><div class="l">Candidats</div></div>
+        <div class="stat"><div class="n" id="stat-filles">0</div><div class="l">Filles</div></div>
+        <div class="stat"><div class="n" id="stat-garcons">0</div><div class="l">Garçons</div></div>
+        <div class="stat"><div class="n" id="stat-pupilles">0</div><div class="l">Pupilles</div></div>
+        <div class="stat"><div class="n" id="stat-et">0</div><div class="l">ET</div></div>
+      </div>
+      <div class="toolbar" style="margin-bottom:8px">
+        <input type="text" id="recherche-liste" placeholder="🔍 Rechercher..." oninput="renderListe()">
+        <button type="button" class="btn btn-primary" onclick="showAllDocs()">📄 Documents officiels</button>
+      </div>
+      <div class="table-wrap">
+        <table id="table-candidats">
+          <thead><tr>
+            <th>Matricule</th><th>Nom</th><th>Prénom(s)</th><th>Sexe</th>
+            <th>Date naiss.</th><th>Lieu naiss.</th><th>Père</th><th>Mère</th>
+            <th>Contact</th><th>Option</th><th>Pupille</th><th>Docs</th><th>Actions</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="doc-preview">
+      <div class="card no-print preview-header">
+        <h2 id="doc-preview-title">Documents</h2>
+        <div class="actions"><button type="button" class="btn btn-danger" onclick="closePreview()">✕ Fermer</button></div>
+      </div>
+      <div id="doc-preview-content">
+        <div id="md-app">
+          <div class="md-entete"><p>Choisissez un candidat puis un document. <button type="button" class="md-lien" onclick="ouvrirParametres()">Modifier les informations de l'école</button></p></div>
+          <div class="md-grille">
+            <section class="md-carte">
+              <h2><span class="md-num">1</span>Candidat</h2>
+              <input id="md-recherche" type="search" placeholder="Rechercher">
+              <div class="md-filtres" role="group">
+                <button type="button" data-filtre="tous" aria-pressed="true">Tous</button>
+                <button type="button" data-filtre="EG" aria-pressed="false">EG</button>
+                <button type="button" data-filtre="EFTP" aria-pressed="false">EFTP</button>
+              </div>
+              <div class="md-outils-liste">
+                <label><input type="checkbox" id="md-tout"> Cocher la liste</label>
+                <span id="md-compte"></span>
+              </div>
+              <ul id="md-candidats"></ul>
+            </section>
+            <section class="md-carte">
+              <h2><span class="md-num">2</span>Document</h2>
+              <div class="md-types" id="md-types"></div>
+              <div class="md-statut" id="md-statut"></div>
+              <div class="md-alerte" id="md-alerte" hidden></div>
+              <h2 class="md-sep"><span class="md-num">3</span>Aperçu et impression</h2>
+              <div class="md-actions">
+                <button type="button" class="md-btn primaire" id="md-imp-un">🖨 Imprimer ce candidat</button>
+                <button type="button" class="md-btn" id="md-imp-lot" disabled>🖨 Imprimer cochés</button>
+                <button type="button" class="md-btn" id="md-imp-dossiers">📚 Dossiers complets</button>
+              </div>
+              <div class="md-apercu" id="md-apercu"><div id="md-echelle"></div></div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-listes" class="tab-panel">
+    <div class="card">
+      <div class="sub-tabs no-print">
+        <button class="sub-tab-btn active" onclick="activerSousOnglet('sub-all')">Tous</button>
+        <button class="sub-tab-btn" onclick="activerSousOnglet('sub-handicap')">ESH</button>
+        <button class="sub-tab-btn" onclick="activerSousOnglet('sub-deplace')">EDF</button>
+        <button class="sub-tab-btn" onclick="activerSousOnglet('sub-eov')">EOV</button>
+        <button class="sub-tab-btn" onclick="activerSousOnglet('sub-pupille')">Pupille</button>
+        <button class="sub-tab-btn" onclick="activerSousOnglet('sub-etat')">État numérique</button>
+      </div>
+      <div id="sub-all" class="sub-tab-panel active">
+        <div class="toolbar no-print"><h2 style="margin:0;border:none;padding:0;font-size:16px">Liste des élèves</h2><button class="btn btn-primary" style="margin-left:auto" onclick="imprimerListe('all')">🖨 Imprimer</button></div>
+        <div class="table-wrap"><table id="list-all"><thead><tr><th>Matricule</th><th>N° PV</th><th>Nom</th><th>Prénom(s)</th><th>Sexe</th><th>Age</th><th>ESH</th><th>EDF</th><th>EOV</th><th>Pupille</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div id="sub-handicap" class="sub-tab-panel">
+        <div class="toolbar no-print"><h2 style="margin:0;border:none;padding:0;font-size:16px">Élèves en situation de handicap</h2><button class="btn btn-primary" style="margin-left:auto" onclick="imprimerListe('handicap')">🖨</button></div>
+        <div class="table-wrap"><table id="list-handicap"><thead><tr><th>Matricule</th><th>N° PV</th><th>Nom</th><th>Prénom(s)</th><th>Sexe</th><th>Age</th><th>Nature</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div id="sub-deplace" class="sub-tab-panel">
+        <div class="toolbar no-print"><h2 style="margin:0;border:none;padding:0;font-size:16px">Élèves déplacés forcés</h2><button class="btn btn-primary" style="margin-left:auto" onclick="imprimerListe('deplace')">🖨</button></div>
+        <div class="table-wrap"><table id="list-deplace"><thead><tr><th>Matricule</th><th>N° PV</th><th>Nom</th><th>Prénom(s)</th><th>Sexe</th><th>Age</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div id="sub-eov" class="sub-tab-panel">
+        <div class="toolbar no-print"><h2 style="margin:0;border:none;padding:0;font-size:16px">Élèves orphelins vulnérables</h2><button class="btn btn-primary" style="margin-left:auto" onclick="imprimerListe('eov')">🖨</button></div>
+        <div class="table-wrap"><table id="list-eov"><thead><tr><th>Matricule</th><th>N° PV</th><th>Nom</th><th>Prénom(s)</th><th>Sexe</th><th>Age</th><th>Vulnérabilité</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div id="sub-pupille" class="sub-tab-panel">
+        <div class="toolbar no-print"><h2 style="margin:0;border:none;padding:0;font-size:16px">Pupilles de la Nation</h2><button class="btn btn-primary" style="margin-left:auto" onclick="imprimerListe('pupille')">🖨</button></div>
+        <div class="table-wrap"><table id="list-pupille"><thead><tr><th>Matricule</th><th>N° PV</th><th>Nom</th><th>Prénom(s)</th><th>Sexe</th><th>Age</th><th>N° identification</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div id="sub-etat" class="sub-tab-panel">
+        <div class="toolbar no-print"><h2 style="margin:0;border:none;padding:0;font-size:16px">État numérique</h2><button class="btn btn-primary" style="margin-left:auto" onclick="imprimerListe('etat')">🖨</button></div>
+        <div class="table-wrap"><table id="stat-grid" style="text-align:center"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-pv" class="tab-panel">
+    <div class="card">
+      <h2>Attribution des N° PV / Matricules</h2>
+      <p class="params-intro">Saisissez le <b>N° Matricule</b> (= N° PV) pour chaque candidat.</p>
+      <div class="toolbar">
+        <button class="btn btn-primary" onclick="enregistrerPV()">💾 Enregistrer</button>
+        <button class="btn btn-neutral" onclick="renderPVTab()">↺ Annuler</button>
+        <span class="params-etat" id="pv-etat"></span>
+      </div>
+      <div class="table-wrap" id="pv-table-wrap">
+        <table id="pv-table"><thead><tr><th style="width:60px">N°</th><th>Nom</th><th>Prénom(s)</th><th style="width:90px">Sexe</th><th style="width:230px">N° Matricule</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-cartes" class="tab-panel" role="tabpanel">
+    <div class="card">
+      <h2>Cartes d'identité scolaire</h2>
+      <p class="helper" style="margin:0 0 12px">Format carte 89,7 × 55,8 mm · <b>10 cartes par page A4</b> (2 × 5). Le verso est identique pour tous les élèves ; pour l'impression recto-verso, retournez la feuille sur le <b>bord long</b>. L'école, la circonscription, l'année scolaire, l'armoirie et le cachet viennent des Paramètres.</p>
+      <div class="toolbar no-print" style="margin-bottom:12px">
+        <button type="button" class="btn btn-primary" id="cartes-imp-recto">🖨 Imprimer les rectos</button>
+        <button type="button" class="btn btn-neutral" id="cartes-imp-verso">🖨 Imprimer les versos</button>
+        <button type="button" class="btn btn-primary" id="cartes-imp-rv">🖨 Recto + verso (pages alternées)</button>
+        <span id="cartes-compte" class="helper" style="margin-left:auto"></span>
+      </div>
+      <div class="cartes-layout">
+        <div class="cartes-liste">
+          <table id="cartes-liste">
+            <thead><tr><th><input type="checkbox" id="cartes-tout" aria-label="Tout cocher"></th><th>Élève</th><th>Matricule</th><th>Classe</th><th>Photo</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="cartes-apercu" id="cartes-apercu"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-evaluations" class="tab-panel">
+    <div class="card">
+      <h2>Gestion des évaluations <small>Classe définie dans Paramètres · ajoutez une évaluation</small></h2>
+      <p class="params-intro">Journalières : choisissez 1 ou 2 matières maximum puis ajoutez l'évaluation. Trimestrielles et examens blancs : toutes les matières de la classe sont incluses, avec Total, Moyenne, Rang et Mention.</p>
+      <div class="sub-tabs no-print">
+        <button class="sub-tab-btn active" onclick="activerEvalSub('eval-jour')">📅 Journalières</button>
+        <button class="sub-tab-btn" onclick="activerEvalSub('eval-trim')">📊 Trimestrielles</button>
+        <button class="sub-tab-btn" onclick="activerEvalSub('eval-exam')">🎓 Examens blancs</button>
+      </div>
+      <div id="eval-jour" class="sub-tab-panel active">
+        <div class="form-grid" style="margin-bottom:15px">
+          <div class="field"><label>Classe</label><select id="ej-classe" onchange="onEvalChange('jour')"></select></div>
+          <div class="field"><label>Date</label><input type="date" id="ej-date" onchange="onEvalChange('jour')"></div>
+        </div>
+        <div id="ej-matieres"></div>
+        <div id="ej-table"></div>
+      </div>
+      <div id="eval-trim" class="sub-tab-panel">
+        <div class="form-grid" style="margin-bottom:15px">
+          <div class="field"><label>Classe</label><select id="et-classe" onchange="onEvalChange('trim')"></select></div>
+          <div class="field"><label>Trimestre</label><select id="et-trim" onchange="onEvalChange('trim')"><option>1er Trimestre</option><option>2ème Trimestre</option><option>3ème Trimestre</option></select></div>
+        </div>
+        <div id="et-matieres"></div>
+        <div id="et-table"></div>
+        <div id="et-resultats"></div>
+      </div>
+      <div id="eval-exam" class="sub-tab-panel">
+        <div class="form-grid" style="margin-bottom:15px">
+          <div class="field"><label>Niveau</label><select id="ex-niveau" onchange="onEvalChange('exam')"><option value="ecole">École</option><option value="ceb">CEB</option><option value="provincial">Provincial</option><option value="regional">Régional</option></select></div>
+          <div class="field"><label>Classe</label><select id="ex-classe" onchange="onEvalChange('exam')"></select></div>
+          <div class="field"><label>Date</label><input type="date" id="ex-date" onchange="onEvalChange('exam')"></div>
+        </div>
+        <div id="ex-matieres"></div>
+        <div id="ex-table"></div>
+        <div id="ex-resultats"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-parametres" class="tab-panel">
+    <div class="card">
+      <h2>Paramètres des documents officiels</h2>
+      <p class="params-intro">Ces informations sont reprises automatiquement sur les documents.</p>
+      <form id="form-parametres" autocomplete="off">
+        <div class="param-verrou" id="param-verrou">
+          <span id="param-verrou-texte">🔒 Informations officielles protégées.</span>
+          <button type="button" class="btn btn-sm btn-neutral" id="param-verrou-btn">🔓 Déverrouiller</button>
+        </div>
+        <div id="param-champs"></div>
+        <div class="params-actions">
+          <button type="button" class="btn btn-neutral" id="param-reset">↺ Rétablir</button>
+          <span class="params-etat" id="param-etat"></span>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Classes &amp; Matières par classe</h2>
+      <p class="params-intro">Sélectionnez une classe, puis ajoutez ses matières avec leur coefficient et la note maximale. Seule la classe choisie reste affichée ; les autres sont masquées et votre choix est conservé.</p>
+      <div id="classes-matieres-list"></div>
+    </div>
+  </section>
+</main>
+
+<div id="print-list-area"></div>
+
+<script>
+/* =========================================================
+   Constantes
+   ========================================================= */
+const FIELDS = [
+  { key:'matricule', label:'Matricule', required:true },
+  { key:'nom',       label:'Nom', required:true },
+  { key:'prenoms',   label:'Prénom(s)', required:true },
+  { key:'sexe',      label:'Sexe', type:'select', options:['','M','F'] },
+  { key:'dateNaiss', label:'Date de naissance', type:'date' },
+  { key:'lieuNaiss', label:'Lieu de naissance' },
+  { key:'pupille',   label:'Pupille', type:'select', options:['','Oui','Non'] },
+  { key:'numeroIdentification', label:"N° d'identification", condition:'pupille=Oui', helper:"Requis si Pupille = Oui" },
+  { key:'handicap',  label:'Élève en situation de handicap (ESH)', type:'select', options:['','Oui','Non'] },
+  { key:'natureHandicap', label:'Nature du handicap', condition:'handicap=Oui', placeholder:'Ex. moteur, visuel…', helper:"Requis si ESH = Oui" },
+  { key:'deplace',   label:'Élève déplacé forcé (EDF)', type:'select', options:['','Oui','Non'] },
+  { key:'eov',       label:'Élève orphelin vulnérable (EOV)', type:'select', options:['','Oui','Non'] },
+  { key:'vulnerabilite', label:'État de vulnérabilité', type:'select', condition:'eov=Oui',
+    options:['','Orphelin de père','Orphelin de mère','Orphelin de père et de mère'], helper:"Requis si EOV = Oui" },
+  { key:'pere',      label:'Nom Prénom(s) du père' },
+  { key:'mere',      label:'Nom prénom(s) de la mère' },
+  { key:'village',   label:'Commune / Village' },
+  { key:'fonction',  label:'Province / Région' },
+  { key:'contact',   label:'Contact' },
+  { key:'classe',    label:'Classe', helper:"Définie dans Paramètres — non modifiable ici" },
+  { key:'categorie', label:'Entrée en 6ième', type:'select', options:['','CEP Seul','CEP + EG','CEP + ET','EG Seul','ET Seul'] },
+  { key:'filiere',   label:'Filière', condition:'categorie=CEP + ET|ET Seul', helper:"Requis si CEP + ET ou ET Seul" },
+  { key:'libre',     label:'Candidat libre au CEP', type:'select', options:['','Oui','Non'], helper:"Si Oui, attestation CM2 jointe" }
+];
+
+const FIELDS_DOC = [
+  { key:'pv',             label:"N° PV" },
+  { key:'dateInscription',label:"Date d'inscription", type:'date' },
+  { key:'redoublements',  label:'Classe(s) redoublée(s)', placeholder:'Néant' },
+  { key:'nationalite',    label:'Nationalité', placeholder:'Burkinabè' },
+  { key:'region',         label:'Région', placeholder:'SAHEL' },
+  { key:'resSecteur',     label:'Secteur / Quartier' },
+  { key:'cepSession',     label:'Titulaire du CEP — session', placeholder:'2025' },
+  { key:'choix1',         label:'1er établissement demandé' },
+  { key:'choix2',         label:'2e établissement demandé' },
+  { key:'choix3',         label:'3e établissement demandé' },
+  { key:'scolarite',      label:'Scolarité (8 classes séparées par ;)', placeholder:'CP1;CP2;CE1;CE2;CM1;CM2;;' },
+  { key:'aptitude',       label:'Aptitude physique', placeholder:'A' },
+  { key:'points',         label:'Points' },
+  { key:'moyenne',        label:'Moyenne' }
+];
+
+const ALL_FIELDS = FIELDS.concat(FIELDS_DOC);
+const CATEGORIES = ['CEP Seul', 'CEP + EG', 'CEP + ET', 'EG Seul', 'ET Seul'];
+function optionDeCategorie(cat) { return /ET$/.test(cat) ? 'ET' : (/EG$/.test(cat) ? 'EG' : ''); }
+function categorieDe(c) {
+  if (CATEGORIES.includes(c.categorie)) return c.categorie;
+  const o = c.option6e, libre = c.libre === 'Oui';
+  if (libre) return o === 'EG' ? 'CEP + EG' : o === 'ET' ? 'CEP + ET' : 'CEP Seul';
+  return o === 'EG' ? 'EG Seul' : o === 'ET' ? 'ET Seul' : '';
+}
+const DOCUMENTS = [
+  { key:'photo', label:"Photo d'identité récente", sub:'fond uni, 4x4', obligatoire:'oui', accept:'image/*' }
+];
+const STORAGE_KEY = 'cep_candidats_v2';
+let candidats = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+if (!candidats) { candidats = []; }
+let editingIndex = -1;
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(candidats)); }
+
+/* =========================================================
+   Utilitaires
+   ========================================================= */
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function val(x, fallback=''){ return (x === undefined || x === null || x === '') ? fallback : esc(x); }
+function toast(msg, type){
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type || 'success');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2800);
+}
+function formatDate(dateStr) {
+  if (!dateStr) return '......';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return esc(dateStr);
+  const mois = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  return `${String(d.getDate()).padStart(2,'0')} ${mois[d.getMonth()]} ${d.getFullYear()}`;
+}
+function getAge(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  return new Date(Date.now() - d.getTime()).getUTCFullYear() - 1970;
+}
+
+/* =========================================================
+   Formulaire
+   ========================================================= */
+function champHTML(f){
+  let input;
+  if (f.key === 'classe') {
+    input = `<input type="text" name="classe" value="${esc(classeParam)}" readonly class="champ-verrouille" title="Classe définie dans Paramètres">`;
+  } else if (f.type === 'select') {
+    input = `<select name="${f.key}">${f.options.map(o => `<option value="${o}">${o === '' ? '—' : o}</option>`).join('')}</select>`;
+  } else {
+    input = `<input type="${f.type || 'text'}" name="${f.key}" ${f.required ? 'required' : ''} ${f.placeholder ? `placeholder="${esc(f.placeholder)}"` : ''}>`;
+  }
+  const helper = f.helper ? `<div class="helper">${esc(f.helper)}</div>` : '';
+  const cond = f.condition ? `data-condition="${f.condition}" style="display:none"` : '';
+  return `<div class="field" data-key="${f.key}" ${cond}><label>${f.label}${f.required ? ' *' : ''}</label>${input}${helper}</div>`;
+}
+function buildForm(){
+  const grid = document.querySelector('#form-candidat .form-grid');
+  grid.innerHTML = FIELDS.map(champHTML).join('');
+  document.getElementById('form-doc-grid').innerHTML = FIELDS_DOC.map(champHTML).join('');
+  ['pupille','categorie','handicap','eov'].forEach(k => {
+    const el = grid.querySelector(`[name="${k}"]`);
+    if (el) el.addEventListener('change', updateConditionals);
+  });
+  updateConditionals();
+}
+function updateConditionals(){
+  document.querySelectorAll('#form-candidat [data-condition]').forEach(el => {
+    const [field, value] = el.dataset.condition.split('=');
+    const trigger = document.querySelector(`#form-candidat [name="${field}"]`);
+    el.style.display = (trigger && value.split('|').includes(trigger.value)) ? '' : 'none';
+  });
+  const pupille = document.querySelector('#form-candidat [name="pupille"]').value === 'Oui';
+  const optionET = optionDeCategorie(document.querySelector('#form-candidat [name="categorie"]').value) === 'ET';
+  const numId = document.querySelector('#form-candidat [name="numeroIdentification"]');
+  const filiere = document.querySelector('#form-candidat [name="filiere"]');
+  if (numId)  numId.required  = pupille;
+  if (filiere) filiere.required = optionET;
+  const val = n => { const x = document.querySelector(`#form-candidat [name="${n}"]`); return x ? x.value : ''; };
+  const nat = document.querySelector('#form-candidat [name="natureHandicap"]');
+  const vul = document.querySelector('#form-candidat [name="vulnerabilite"]');
+  if (nat) nat.required = val('handicap') === 'Oui';
+  if (vul) vul.required = val('eov') === 'Oui';
+}
+function buildDocsForm(){
+  const zone = document.getElementById('docs-form');
+  zone.innerHTML = DOCUMENTS.map(d => `
+    <div class="doc-item" data-doc="${d.key}" data-obligatoire="${d.obligatoire}">
+      <div class="doc-name">${esc(d.label)}<small>${esc(d.sub || '')}</small></div>
+      <span class="doc-statut" data-statut>—</span>
+      <input type="file" data-doc-input="${d.key}" accept="${d.accept || 'application/pdf,image/*'}">
+      <div class="doc-preview" data-preview></div>
+    </div>
+  `).join('');
+  zone.querySelectorAll('[data-doc-input]').forEach(input => {
+    input.addEventListener('change', () => {
+      const item = input.closest('.doc-item');
+      updateDocStatut(item);
+      const f = input.files[0];
+      item.querySelector('[data-preview]').textContent = f ? `📎 ${f.name} — ${(f.size/1024).toFixed(1)} Ko` : '';
+    });
+  });
+  updateConditionals();
+}
+function updateDocStatut(item){
+  const oblig = item.dataset.obligatoire;
+  const input = item.querySelector('[data-doc-input]');
+  const fourni = input && input.files.length > 0;
+  const statut = item.querySelector('[data-statut]');
+  statut.classList.remove('ok','manquant','facultatif');
+  if (fourni) { statut.textContent = 'Fourni'; statut.classList.add('ok'); return; }
+  if (oblig === 'oui') { statut.textContent = 'Manquant'; statut.classList.add('manquant'); }
+  else { statut.textContent = 'Facultatif'; statut.classList.add('facultatif'); }
+}
+function resetDocs(){
+  document.querySelectorAll('.doc-item').forEach(item => {
+    item.querySelector('[data-preview]').textContent = '';
+    const input = item.querySelector('[data-doc-input]');
+    if(input) input.value = '';
+    const def = DOCUMENTS.find(d => d.key === item.dataset.doc);
+    if (def) item.dataset.obligatoire = def.obligatoire;
+    updateDocStatut(item);
+  });
+  updateConditionals();
+}
+async function collecterDocuments(){
+  const docs = {};
+  for (const d of DOCUMENTS) {
+    const input = document.querySelector(`[data-doc-input="${d.key}"]`);
+    const f = input && input.files[0];
+    if (!f) { docs[d.key] = { fourni:false }; continue; }
+    if (f.size <= 500 * 1024) {
+      const contenu = await new Promise(r => {
+        const reader = new FileReader();
+        reader.onload = () => r(reader.result);
+        reader.readAsDataURL(f);
+      });
+      docs[d.key] = { fourni:true, nom:f.name, taille:f.size, type:f.type, contenu };
+    } else {
+      docs[d.key] = { fourni:true, nom:f.name, taille:f.size, type:f.type, contenu:null };
+    }
+  }
+  return docs;
+}
+
+/* =========================================================
+   Ajout / Modification / Suppression
+   ========================================================= */
+document.getElementById('form-candidat').addEventListener('submit', async e => {
+  e.preventDefault();
+  const form = e.target;
+  const data = {};
+  ALL_FIELDS.forEach(f => { const el = form[f.key]; data[f.key] = el ? (el.value || '').trim() : ''; });
+
+  if (data.pupille !== 'Oui') data.numeroIdentification = '';
+  data.option6e = CATEGORIES.includes(data.categorie) ? optionDeCategorie(data.categorie) : '';
+  if (!CATEGORIES.includes(data.categorie)) data.categorie = '';
+  if (data.option6e !== 'ET') data.filiere = '';
+  if (data.handicap !== 'Oui') data.natureHandicap = '';
+  if (data.eov !== 'Oui') data.vulnerabilite = '';
+
+  if (!data.matricule || !data.nom || !data.prenoms) { toast('Matricule, Nom et Prénom(s) obligatoires', 'error'); return; }
+  const dup = candidats.some((c, idx) => idx !== editingIndex && c.matricule.toLowerCase() === data.matricule.toLowerCase());
+  if (dup) { toast('Ce matricule existe déjà', 'error'); return; }
+  if (data.pupille === 'Oui' && !data.numeroIdentification) { toast("N° d'identification requis pour un pupille", 'error'); return; }
+  if (data.option6e === 'ET' && !data.filiere) { toast("Filière requise pour ET", 'error'); return; }
+  if (data.handicap === 'Oui' && !data.natureHandicap) { toast("Nature du handicap requise", 'error'); return; }
+  if (data.eov === 'Oui' && !data.vulnerabilite) { toast("État de vulnérabilité requis", 'error'); return; }
+
+  const docs = await collecterDocuments();
+  data.documents = docs;
+  if (editingIndex >= 0 && candidats[editingIndex].documents && candidats[editingIndex].documents.photo) {
+    if (!docs.photo.fourni) data.documents.photo = candidats[editingIndex].documents.photo;
+  }
+  if (editingIndex >= 0) { candidats[editingIndex] = data; toast('Candidat modifié'); }
+  else { candidats.push(data); toast('Candidat ajouté'); }
+  reinitialiserFormulaire();
+  save();
+  renderListe();
+});
+function modifier(i) {
+  editingIndex = i;
+  const c = candidats[i], form = document.getElementById('form-candidat');
+  ALL_FIELDS.forEach(f => { if (form[f.key]) form[f.key].value = c[f.key] || ''; });
+  if (form.classe) form.classe.value = classeParam;
+  if (form.categorie) form.categorie.value = categorieDe(c);
+  updateConditionals();
+  resetDocs();
+  if (c.documents && c.documents.photo && c.documents.photo.fourni) {
+    const prev = document.querySelector('.doc-item[data-doc="photo"] [data-preview]');
+    if(prev) prev.textContent = `📎 ${c.documents.photo.nom} (laisser vide pour conserver)`;
+  }
+  document.getElementById('btn-submit').textContent = "💾 Enregistrer";
+  document.getElementById('form-titre').textContent = "1. Modification d'un candidat";
+  form.scrollIntoView({behavior: 'smooth'});
+}
+function reinitialiserFormulaire() {
+  editingIndex = -1;
+  document.getElementById('form-candidat').reset();
+  const form = document.getElementById('form-candidat');
+  if (form && form.classe) form.classe.value = classeParam;
+  resetDocs();
+  document.getElementById('btn-submit').textContent = "➕ Ajouter le candidat";
+  document.getElementById('form-titre').textContent = "1. Saisie d'un candidat";
+}
+
+/* =========================================================
+   Liste candidats
+   ========================================================= */
+function renderListe(){
+  const tbody = document.querySelector('#table-candidats tbody');
+  const q = (document.getElementById('recherche-liste').value || '').toLowerCase();
+  if (candidats.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="13" class="empty">Aucun candidat enregistré.</td></tr>';
+  } else {
+    tbody.innerHTML = candidats.map((c, i) => {
+      const sexeBadge = c.sexe === 'M' ? '<span class="badge badge-m">M</span>' : c.sexe === 'F' ? '<span class="badge badge-f">F</span>' : '<span class="badge badge-none">—</span>';
+      const optBadge = (c.option6e === 'EG' ? '<span class="badge badge-eg">EG</span>' : c.option6e === 'ET' ? `<span class="badge badge-et">ET</span>${c.filiere ? ' <small style="color:#b9770e">'+esc(c.filiere)+'</small>' : ''}` : '<span class="badge badge-none">—</span>') + ((c.libre === true || /^(oui|1|true|vrai)$/i.test(String(c.libre ?? ''))) ? ' <span class="badge badge-libre">Libre</span>' : '');
+      const pupBadge = c.pupille === 'Oui' ? `<span class="badge badge-pup">Pupille${c.numeroIdentification ? ' · '+esc(c.numeroIdentification) : ''}</span>` : '<span class="badge badge-none">Non</span>';
+      const docs = c.documents || {};
+      let totalOblig = 0, fournisOblig = 0;
+      DOCUMENTS.forEach(d => { if (d.obligatoire === 'oui') { totalOblig++; if (docs[d.key] && docs[d.key].fourni) fournisOblig++; } });
+      const docsBadge = fournisOblig === totalOblig ? `<span class="badge badge-doc-ok">📎 ${fournisOblig}/${totalOblig}</span>` : `<span class="badge badge-doc-miss">📎 ${fournisOblig}/${totalOblig}</span>`;
+      return `<tr>
+        <td><b>${esc(c.matricule)}</b></td><td>${esc(c.nom)}</td><td>${esc(c.prenoms)}</td>
+        <td>${sexeBadge}</td><td>${formatDate(c.dateNaiss)}</td><td>${val(c.lieuNaiss)}</td>
+        <td>${val(c.pere)}</td><td>${val(c.mere)}</td><td>${val(c.contact)}</td>
+        <td>${optBadge}</td><td>${pupBadge}</td><td>${docsBadge}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-sm btn-warning" onclick="modifier(${i})">✏️</button>
+          <button class="btn btn-sm btn-primary" onclick="showDocs(${i})">📄</button>
+          <button class="btn btn-sm btn-danger" onclick="supprimer(${i})">🗑</button>
+        </td></tr>`;
+    }).join('');
+  }
+  tbody.querySelectorAll('tr').forEach(r => {
+    if (r.classList.contains('empty')) return;
+    r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
+  });
+  document.getElementById('stat-total').textContent    = candidats.length;
+  document.getElementById('stat-filles').textContent   = candidats.filter(c => c.sexe === 'F').length;
+  document.getElementById('stat-garcons').textContent  = candidats.filter(c => c.sexe === 'M').length;
+  document.getElementById('stat-pupilles').textContent = candidats.filter(c => c.pupille === 'Oui').length;
+  document.getElementById('stat-et').textContent       = candidats.filter(c => c.option6e === 'ET').length;
+  if (apercuOuvert()) syncDocuments();
+  const pvPanel = document.getElementById('tab-pv');
+  if (pvPanel && pvPanel.classList.contains('active')) renderPVTab();
+  const listesPanel = document.getElementById('tab-listes');
+  if (listesPanel && listesPanel.classList.contains('active')) renderListes();
+}
+function supprimer(i){
+  if (!confirm('Supprimer ce candidat ?')) return;
+  if (editingIndex === i) reinitialiserFormulaire();
+  candidats.splice(i, 1); save(); renderListe();
+  toast('Supprimé', 'info');
+}
+function viderTout(){
+  if (!confirm('Vider la liste entière ?')) return;
+  reinitialiserFormulaire();
+  candidats = []; save(); renderListe();
+  toast('Liste vidée', 'info');
+}
+
+/* =========================================================
+   Listes & impression
+   ========================================================= */
+function activerSousOnglet(id) {
+  document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.sub-tab-panel').forEach(p => p.classList.remove('active'));
+  const btn = document.querySelector(`.sub-tab-btn[onclick="activerSousOnglet('${id}')"]`);
+  if (btn) btn.classList.add('active');
+  const panel = document.getElementById(id);
+  if (panel) panel.classList.add('active');
+}
+function etatNumeriqueHTML() {
+  const categories = CATEGORIES.map(label => ({ label, filter: c => categorieDe(c) === label }));
+  const populations = [
+    { label: 'Candidats ESH',     filter: c => c.handicap === 'Oui' },
+    { label: 'Candidats EDF',     filter: c => c.deplace === 'Oui' },
+    { label: 'Candidats Pupille', filter: c => c.pupille === 'Oui' },
+    { label: 'Candidats EOV',     filter: c => c.eov === 'Oui' },
+    { label: 'Total Ecole',       filter: () => true, total: true }
+  ];
+  const countStats = list => ({ f: list.filter(c => c.sexe === 'F').length, g: list.filter(c => c.sexe === 'M').length, t: list.length });
+  const listes = categories.map(cat => candidats.filter(cat.filter));
+  const thead = `<thead><tr><th rowspan="2" style="vertical-align:middle">Catégorie</th>${categories.map(c => `<th colspan="3">${c.label}</th>`).join('')}<th colspan="3">Total</th></tr><tr>${'<th>F</th><th>G</th><th>T</th>'.repeat(categories.length + 1)}</tr></thead>`;
+  const tbody = populations.map(pop => {
+    const stats = listes.map(l => countStats(l.filter(pop.filter)));
+    const tot = stats.reduce((a, x) => ({ f:a.f+x.f, g:a.g+x.g, t:a.t+x.t }), { f:0, g:0, t:0 });
+    const cells = stats.concat([tot]).map(x => `<td>${x.f}</td><td>${x.g}</td><td><b>${x.t}</b></td>`).join('');
+    return `<tr${pop.total ? ' style="background:#f4f7fb;font-weight:bold"' : ''}><td style="text-align:left"><b>${pop.label}</b></td>${cells}</tr>`;
+  }).join('');
+  return { thead, tbody };
+}
+function renderListes() {
+  document.querySelector('#list-all tbody').innerHTML = candidats.map(c => `<tr><td>${esc(c.matricule)}</td><td>${esc(c.pv)}</td><td>${esc(c.nom)}</td><td>${esc(c.prenoms)}</td><td style="text-align:center">${c.sexe || ''}</td><td style="text-align:center">${getAge(c.dateNaiss)}</td><td style="text-align:center">${esc(c.handicap)}</td><td style="text-align:center">${esc(c.deplace)}</td><td style="text-align:center">${esc(c.eov)}</td><td style="text-align:center">${c.pupille || ''}</td></tr>`).join('') || '<tr><td colspan="10" class="empty">Aucun élève</td></tr>';
+  document.querySelector('#list-handicap tbody').innerHTML = candidats.filter(c => c.handicap === 'Oui').map(c => `<tr><td>${esc(c.matricule)}</td><td>${esc(c.pv)}</td><td>${esc(c.nom)}</td><td>${esc(c.prenoms)}</td><td style="text-align:center">${c.sexe || ''}</td><td style="text-align:center">${getAge(c.dateNaiss)}</td><td>${esc(c.natureHandicap)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">Aucun élève</td></tr>';
+  document.querySelector('#list-deplace tbody').innerHTML = candidats.filter(c => c.deplace === 'Oui').map(c => `<tr><td>${esc(c.matricule)}</td><td>${esc(c.pv)}</td><td>${esc(c.nom)}</td><td>${esc(c.prenoms)}</td><td style="text-align:center">${c.sexe || ''}</td><td style="text-align:center">${getAge(c.dateNaiss)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">Aucun élève</td></tr>';
+  document.querySelector('#list-pupille tbody').innerHTML = candidats.filter(c => c.pupille === 'Oui').map(c => `<tr><td>${esc(c.matricule)}</td><td>${esc(c.pv)}</td><td>${esc(c.nom)}</td><td>${esc(c.prenoms)}</td><td style="text-align:center">${c.sexe || ''}</td><td style="text-align:center">${getAge(c.dateNaiss)}</td><td>${esc(c.numeroIdentification)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">Aucun élève</td></tr>';
+  document.querySelector('#list-eov tbody').innerHTML = candidats.filter(c => c.eov === 'Oui').map(c => `<tr><td>${esc(c.matricule)}</td><td>${esc(c.pv)}</td><td>${esc(c.nom)}</td><td>${esc(c.prenoms)}</td><td style="text-align:center">${c.sexe || ''}</td><td style="text-align:center">${getAge(c.dateNaiss)}</td><td>${esc(c.vulnerabilite)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">Aucun élève</td></tr>';
+  const etat = etatNumeriqueHTML();
+  document.querySelector('#stat-grid thead').outerHTML = etat.thead;
+  document.querySelector('#stat-grid tbody').innerHTML = etat.tbody;
+}
+function imprimerListe(type) {
+  const cfg = window.MonEcoleDocuments.getConfig();
+  const typeEcole = String(cfg.ecoleType || 'Publique').toUpperCase();
+  const titreResp = cfg.responsable === 'Directrice' ? 'La Directrice' : 'Le Directeur';
+  const sig = cfg.signatureCachet || cfg.signature;
+  let title = '', tableHTML = '';
+  if (type === 'all') {
+    title = 'LISTE DES ÉLÈVES';
+    tableHTML = `<table><thead><tr><th>Matricule</th><th>N° PV</th><th>Nom</th><th>Prénom(s)</th><th>Sexe</th><th>Age</th><th>ESH</th><th>EDF</th><th>EOV</th><th>Pupille</th></tr></thead><tbody>${candidats.map(c => `<tr><td>${esc(c.matricule)}</td><td>${esc(c.pv)}</td><td>${esc(c.nom)}</td><td>${esc(c.prenoms)}</td><td style="text-align:center">${c.sexe}</td><td style="text-align:center">${getAge(c.dateNaiss)}</td><td style="text-align:center">${esc(c.handicap)}</td><td style="text-align:center">${esc(c.deplace)}</td><td style="text-align:center">${esc(c.eov)}</td><td style="text-align:center">${c.pupille}</td></tr>`).join('') || '<tr><td colspan="10" style="text-align:center">Aucun élève</td></tr>'}</tbody></table>`;
+  } else if (type === 'handicap') {
+    title = 'LISTE DES ÉLÈVES EN SITUATION DE HANDICAP';
+    const list = candidats.filter(c => c.handicap === 'Oui');
+    tableHTML = `<table><thead><tr><th>Matricule</th><th>N° PV</th><th>Nom</th><th>Prénom(s)</th><th>Sexe</th><th>Age</th><th>Nature</th></tr></thead><tbody>${list.map(c => `<tr><td>${esc(c.matricule)}</td><td>${esc(c.pv)}</td><td>${esc(c.nom)}</td><td>${esc(c.prenoms)}</td><td style="text-align:center">${c.sexe}</td><td style="text-align:center">${getAge(c.dateNaiss)}</td><td>${esc(c.natureHandicap)}</td></tr>`).join('') || '<tr><td colspan="7" style="text-align:center">Aucun élève</td></tr>'}</tbody></table>`;
+  } else if (type === 'deplace') {
+    title = 'LISTE DES ÉLÈVES DÉPLACÉS FORCÉS';
+    const list = candidats.filter(c => c.deplace === 'Oui');
+    tableHTML = `<table><thead><tr><th>Matricule</th><th>N° PV</th><th>Nom</th><th>Prénom(s)</th><th>Sexe</th><th>Age</th></tr></thead><tbody>${list.map(c => `<tr><td>${esc(c.matricule)}</td><td>${esc(c.pv)}</td><td>${esc(c.nom)}</td><td>${esc(c.prenoms)}</td><td style="text-align:center">${c.sexe}</td><td style="text-align:center">${getAge(c.dateNaiss)}</td></tr>`).join('') || '<tr><td colspan="6" style="text-align:center">Aucun élève</td></tr>'}</tbody></table>`;
+  } else if (type === 'pupille') {
+    title = 'LISTE DES ÉLÈVES PUPILLE DE LA NATION';
+    const list = candidats.filter(c => c.pupille === 'Oui');
+    tableHTML = `<table><thead><tr><th>Matricule</th><th>N° PV</th><th>Nom</th><th>Prénom(s)</th><th>Sexe</th><th>Age</th><th>N° identification</th></tr></thead><tbody>${list.map(c => `<tr><td>${esc(c.matricule)}</td><td>${esc(c.pv)}</td><td>${esc(c.nom)}</td><td>${esc(c.prenoms)}</td><td style="text-align:center">${c.sexe}</td><td style="text-align:center">${getAge(c.dateNaiss)}</td><td>${esc(c.numeroIdentification)}</td></tr>`).join('') || '<tr><td colspan="7" style="text-align:center">Aucun élève</td></tr>'}</tbody></table>`;
+  } else if (type === 'eov') {
+    title = 'LISTE DES ÉLÈVES ORPHELINS VULNÉRABLES';
+    const list = candidats.filter(c => c.eov === 'Oui');
+    tableHTML = `<table><thead><tr><th>Matricule</th><th>N° PV</th><th>Nom</th><th>Prénom(s)</th><th>Sexe</th><th>Age</th><th>Vulnérabilité</th></tr></thead><tbody>${list.map(c => `<tr><td>${esc(c.matricule)}</td><td>${esc(c.pv)}</td><td>${esc(c.nom)}</td><td>${esc(c.prenoms)}</td><td style="text-align:center">${c.sexe}</td><td style="text-align:center">${getAge(c.dateNaiss)}</td><td>${esc(c.vulnerabilite)}</td></tr>`).join('') || '<tr><td colspan="7" style="text-align:center">Aucun élève</td></tr>'}</tbody></table>`;
+  } else if (type === 'etat') {
+    title = 'ÉTAT NUMÉRIQUE DES CANDIDATS';
+    const etat = etatNumeriqueHTML();
+    tableHTML = `<table style="font-size:8pt;text-align:center">${etat.thead}<tbody>${etat.tbody}</tbody></table>`;
+  }
+  const enteteHTML = `<div style="display:flex;justify-content:space-between;align-items:flex-start;font-family:Tahoma,Verdana,sans-serif;font-size:9pt;text-transform:uppercase;margin-bottom:25px"><div style="text-align:center;width:50%">CIRCONSCRIPTION D'EDUCATION<br>DE BASE DE ${esc(cfg.circonscription)}<div style="width:25mm;margin:4px auto;border-bottom:.5mm dashed #444"></div>ECOLE PRIMAIRE ${esc(typeEcole)}<br>${esc(cfg.ecole)}${cfg.telephone ? `<div style="font-size:7pt;text-transform:none;margin-top:3px">Tél. : ${esc(cfg.telephone)}</div>` : ''}</div><div style="text-align:right;width:40%;text-transform:none;font-size:9pt;margin-top:5px">Année scolaire : ${esc(cfg.anneeScolaire)}<br>${esc(cfg.ville)}, le ${formatDate(cfg.dateEdition)}</div></div>`;
+  const signatureHTML = `<div style="margin-top:30px;display:flex;justify-content:flex-end;page-break-inside:avoid"><div style="text-align:center;width:70mm;font-family:Tahoma,Verdana,sans-serif;font-size:9pt"><div style="margin-bottom:5px">${esc(titreResp)}</div><div style="height:18mm;display:flex;align-items:center;justify-content:center">${sig ? `<img src="${esc(sig)}" style="max-width:50mm;max-height:18mm;object-fit:contain">` : ''}</div><div style="font-weight:bold;font-size:8pt">${esc(cfg.directeurNom)}</div><div style="font-style:italic;font-size:6.5pt">${esc(cfg.directeurGrade)}</div>${cfg.decoration ? `<div style="font-style:italic;font-size:5.8pt">${esc(cfg.decoration)}</div>` : ''}</div></div>`;
+  document.getElementById('print-list-area').innerHTML = `<div style="padding:0 5mm">${enteteHTML}<div style="text-align:center;font-weight:bold;font-size:14pt;margin:15px 0;text-decoration:underline;font-family:Arial,sans-serif">${title}</div>${tableHTML}${signatureHTML}</div>`;
+  window.print();
+}
+
+/* =========================================================
+   Import / Export
+   ========================================================= */
+function importerLignes(rows){
+  let count = 0, ignored = 0;
+  rows.forEach(row => {
+    const data = {};
+    ALL_FIELDS.forEach(f => {
+      const v = row[f.label] !== undefined ? row[f.label] : row[f.key];
+      data[f.key] = String(v == null ? '' : v).trim();
+    });
+    const ouiNon = v => { v = String(v == null ? '' : v).trim(); return /^(oui|o|1|x|vrai|true)$/i.test(v) ? 'Oui' : (/^(non|n|0|faux|false)$/i.test(v) ? 'Non' : ''); };
+    if (!data.handicap) data.handicap = ouiNon(row['Ecole (ESH)'] ?? row['ESH'] ?? row['esh']);
+    if (!data.deplace)  data.deplace  = ouiNon(row['CEB (EDF)'] ?? row['EDF'] ?? row['edf']);
+    if (data.categorie === 'EG' || data.categorie === 'ET') { data.option6e = data.categorie; data.categorie = ''; }
+    else if (row['option6e'] !== undefined) data.option6e = String(row['option6e']).trim();
+    if (!CATEGORIES.includes(data.categorie)) data.categorie = categorieDe(data);
+    data.option6e = data.categorie ? optionDeCategorie(data.categorie) : '';
+    if (data.option6e !== 'ET') data.filiere = '';
+    data.documents = {};
+    if (!data.matricule || !data.nom || candidats.some(c => c.matricule.toLowerCase() === data.matricule.toLowerCase())) { ignored++; return; }
+    candidats.push(data); count++;
+  });
+  save(); renderListe();
+  toast(`${count} importé(s)${ignored ? ', '+ignored+' ignoré(s)' : ''}`, 'success');
+}
+function parseCSV(text){
+  text = String(text || '').replace(/^\uFEFF/, '');
+  const premiereLigne = text.split(/\r?\n/)[0] || '';
+  const sep = premiereLigne.includes(';') ? ';' : ',';
+  const lignes = [];
+  let ligne = [], champ = '', guillemet = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (guillemet) {
+      if (c === '"' && text[i + 1] === '"') { champ += '"'; i++; }
+      else if (c === '"') guillemet = false;
+      else champ += c;
+    } else {
+      if (c === '"') guillemet = true;
+      else if (c === sep) { ligne.push(champ); champ = ''; }
+      else if (c === '\n') { ligne.push(champ); lignes.push(ligne); ligne = []; champ = ''; }
+      else if (c !== '\r') champ += c;
+    }
+  }
+  if (champ !== '' || ligne.length) { ligne.push(champ); lignes.push(ligne); }
+  return lignes.filter(l => l.some(x => String(x).trim() !== ''));
+}
+document.getElementById('import-excel').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const estCSV = /\.csv$/i.test(file.name);
+  if (estCSV || typeof XLSX === 'undefined') {
+    if (!estCSV) { toast('Import Excel indisponible hors ligne. Utilisez un fichier CSV.', 'error'); e.target.value = ''; return; }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const lignes = parseCSV(ev.target.result);
+        const entetes = (lignes.shift() || []).map(h => String(h).trim());
+        const rows = lignes.map(l => { const o = {}; entetes.forEach((h, i) => o[h] = l[i] ?? ''); return o; });
+        importerLignes(rows);
+      } catch (err) { toast('Erreur lecture CSV', 'error'); }
+    };
+    reader.readAsText(file, 'utf-8'); e.target.value = ''; return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+      importerLignes(rows);
+    } catch (err) { toast('Erreur lecture fichier', 'error'); }
+  };
+  reader.readAsArrayBuffer(file); e.target.value = '';
+});
+function telechargerTableauExcel(nom, entetes, lignes){
+  const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Candidats</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table border="1"><thead><tr>${entetes.map(h => `<th>${e(h)}</th>`).join('')}</tr></thead><tbody>${lignes.map(l => `<tr>${l.map(v => `<td>${e(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`;
+  const blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nom;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+function telechargerModele(){
+  const entetes = ALL_FIELDS.map(f => f.label);
+  if (typeof XLSX !== 'undefined') {
+    const ws = XLSX.utils.aoa_to_sheet([entetes]);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Candidats');
+    XLSX.writeFile(wb, 'modele_candidats.xlsx'); toast('Modèle téléchargé');
+  } else {
+    telechargerTableauExcel('modele_candidats.xls', entetes, []);
+    toast('Modèle téléchargé (.xls)');
+  }
+}
+function exporterCandidats(){
+  if (!candidats.length) { toast('Aucun candidat', 'error'); return; }
+  const entetes = ALL_FIELDS.map(f => f.label);
+  const lignes = candidats.map(c => ALL_FIELDS.map(f => c[f.key] || ''));
+  if (typeof XLSX !== 'undefined') {
+    const data = [entetes, ...lignes];
+    const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Candidats'); XLSX.writeFile(wb, 'candidats_cep.xlsx');
+    toast('Export Excel téléchargé');
+  } else {
+    telechargerTableauExcel('candidats_cep.xls', entetes, lignes);
+    toast('Export Excel (.xls) téléchargé');
+  }
+}
+function exporterJSON() {
+  if (!candidats.length) { toast('Aucun candidat', 'error'); return; }
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(candidats, null, 2));
+  const a = document.createElement('a');
+  a.href = dataStr; a.download = "sauvegarde_candidats_" + new Date().toISOString().slice(0,10) + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('Sauvegarde JSON téléchargée');
+}
+document.getElementById('import-json').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      if (Array.isArray(parsed) && confirm("Cette action remplacera la liste actuelle. Continuer ?")) {
+        candidats = parsed; save(); renderListe(); reinitialiserFormulaire();
+        toast('Sauvegarde restaurée avec succès');
+      } else if (!Array.isArray(parsed)) toast('Format invalide', 'error');
+    } catch (err) { toast('Erreur lecture JSON', 'error'); }
+  };
+  reader.readAsText(file); e.target.value = '';
+});
+
+/* =========================================================
+   PV
+   ========================================================= */
+function renderPVTab(){
+  const tbody = document.querySelector('#pv-table tbody');
+  if (!tbody) return;
+  if (candidats.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Aucun candidat enregistré.</td></tr>'; return; }
+  tbody.innerHTML = candidats.map((c, i) => {
+    const sexeBadge = c.sexe === 'M' ? '<span class="badge badge-m">M</span>' : c.sexe === 'F' ? '<span class="badge badge-f">F</span>' : '<span class="badge badge-none">—</span>';
+    return `<tr><td>${i + 1}</td><td><b>${esc(c.nom)}</b></td><td>${esc(c.prenoms)}</td><td>${sexeBadge}</td><td><input type="text" data-pv-idx="${i}" value="${esc(c.matricule)}" maxlength="30"></td></tr>`;
+  }).join('');
+}
+function enregistrerPV(){
+  const inputs = document.querySelectorAll('#pv-table input[data-pv-idx]');
+  if (!inputs.length) { toast('Aucun candidat', 'error'); return; }
+  const final = candidats.map((c, i) => {
+    const inp = Array.from(inputs).find(x => +x.dataset.pvIdx === i);
+    return inp && inp.value.trim() ? inp.value.trim() : c.matricule;
+  });
+  for (let i = 0; i < final.length; i++) { if (!final[i]) { toast(`Ligne ${i + 1} vide`, 'error'); return; } }
+  const seen = new Map();
+  for (let i = 0; i < final.length; i++) {
+    const key = final[i].toLowerCase();
+    if (seen.has(key)) { toast(`Doublon : « ${final[i]} » lignes ${seen.get(key) + 1} et ${i + 1}`, 'error'); return; }
+    seen.set(key, i);
+  }
+  let modifies = 0;
+  candidats.forEach((c, i) => { if (c.matricule !== final[i] || c.pv !== final[i]) { c.matricule = final[i]; c.pv = final[i]; modifies++; } });
+  save(); renderListe(); if (apercuOuvert()) syncDocuments();
+  const el = document.getElementById('pv-etat');
+  el.textContent = modifies ? `✓ ${modifies} modifié(s)` : '✓ Aucun changement';
+  el.classList.add('visible');
+  clearTimeout(enregistrerPV._t); enregistrerPV._t = setTimeout(() => el.classList.remove('visible'), 2800);
+  toast(modifies ? `${modifies} N° PV enregistré(s)` : 'Aucun changement', modifies ? 'success' : 'info');
+}
+
+/* =========================================================
+   Export PDF / Word
+   ========================================================= */
+function exporterDossiersPDF(){
+  if (!candidats.length) { toast('Aucun candidat', 'error'); return; }
+  syncDocuments();
+  toast('Choisissez « Enregistrer au format PDF »', 'info');
+  window.MonEcoleDocuments.imprimerDossiers();
+}
+function exporterDossiersWord(){
+  if (!candidats.length) { toast('Aucun candidat', 'error'); return; }
+  const html = dossiersWordHTML(candidats);
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'dossiers_cep.doc';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  toast('Export Word téléchargé');
+}
+function dossiersWordHTML(liste){
+  const cfg = window.MonEcoleDocuments.getConfig();
+  const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const dt = v => v ? formatDate(v) : '—';
+  const row = (l, v) => `<tr><td class="lab">${e(l)}</td><td>${e(v || '—')}</td></tr>`;
+  const table = rows => `<table class="champs">${rows.join('')}</table>`;
+  const saut = `<br clear="all" style="mso-special-character:line-break;page-break-before:always">`;
+  const entete = `<p class="entete">École primaire ${e(cfg.ecoleType.toLowerCase())} de ${e(cfg.ecole)} — Circonscription d'Éducation de Base de ${e(cfg.circonscription)}${cfg.telephone ? ' — Tél. : ' + e(cfg.telephone) : ''}</p>`;
+  const signature = `<table class="sig"><tr><td class="vide"></td><td class="droite"><p><b>${e(cfg.responsable === 'Directrice' ? 'La Directrice' : 'Le Directeur')}</b></p><p class="espace">&nbsp;</p><p><b>${e(cfg.directeurNom)}</b></p><p>${e(cfg.directeurGrade)}</p>${cfg.decoration ? `<p class="deco">${e(cfg.decoration)}</p>` : ''}</td></tr></table>`;
+  const respEcole = cfg.responsable === 'Directrice' ? 'la Directrice' : 'le Directeur';
+  const pages = [];
+  liste.forEach(c => {
+    const opt = c.option6e === 'ET' ? 'ET' : 'EG';
+    const nomComplet = `${c.nom || ''} ${c.prenoms || ''}`.trim();
+    const scolarite = String(c.scolarite || '').split(';').map(s => s.trim()).filter(Boolean).join(' · ') || '—';
+    const libre = c.libre === true || /^(oui|1|true|vrai)$/i.test(String(c.libre ?? ''));
+    pages.push(`${entete}<h1>Certificat de scolarité</h1>${table([row('Nom et prénom(s)', nomComplet),row('Né(e) le', dt(c.dateNaiss)),row('À', c.lieuNaiss),row('Fils / fille de', c.pere),row('Et de', c.mere),row("Inscrit(e) dans l'établissement depuis le", dt(c.dateInscription)),row('Classe', c.classe || classeParam),row('Matricule', c.matricule),row('Classe(s) redoublée(s)', c.redoublements || 'Néant'),row('Année scolaire', cfg.anneeScolaire)])}<p>En foi de quoi, le présent certificat est délivré pour servir et valoir ce que de droit.</p><p class="lieu">Fait à ${e(cfg.ville)}, le ${e(dt(cfg.dateEdition))}.</p>${signature}`);
+    pages.push(`${entete}<h1>Fiche d'inscription — option ${e(opt)}${opt === 'ET' && c.filiere ? ' (' + e(c.filiere) + ')' : ''}</h1>${table([row('Session', cfg.session),row('N° PV', c.pv),row('Nom', String(c.nom || '').toUpperCase()),row('Prénom(s)', c.prenoms),row('Date de naissance', dt(c.dateNaiss)),row('Lieu de naissance', c.lieuNaiss),row('Nationalité', c.nationalite || 'Burkinabè'),row('Sexe', c.sexe),row('École fréquentée', cfg.ecole),row('Année scolaire', cfg.anneeScolaire),row('Région', c.region),row('Province', c.fonction),row('Commune', c.village),row('Nom et prénom(s) du père', c.pere),row('Nom et prénom(s) de la mère', c.mere),row('Ville / village de résidence', c.village),row('Contact des parents', c.contact),row('Option', opt),row('Filière', opt === 'ET' ? c.filiere : ''),row('Déroulement de la scolarité', scolarite),row('Titulaire du CEP (session)', c.cepSession),row('1er établissement demandé', c.choix1),row('2e établissement demandé', c.choix2),row('3e établissement demandé', c.choix3)])}<p class="lieu">Fait à ${e(cfg.ville)}, le ${e(dt(cfg.dateEdition))}.</p>${signature}`);
+    pages.push(`${entete}<h1>Chemise du CEP — session ${e(cfg.session)}</h1>${table([row("Centre d'examen demandé", cfg.centre),row('N° PV', c.pv),row('Nom', String(c.nom || '').toUpperCase()),row('Prénom(s)', c.prenoms),row('Sexe', c.sexe),row('Date de naissance', dt(c.dateNaiss)),row('École primaire', cfg.ecole)])}${libre ? `<p><b>Candidat libre au CEP</b> : l'attestation de niveau CM2 est jointe.</p>` : ''}`);
+    pages.push(`${entete}<h1>Chemise du concours 6e — option ${e(opt)}${opt === 'ET' && c.filiere ? ' (' + e(c.filiere) + ')' : ''}</h1>${table([row('Session', cfg.session),row("Centre d'examen demandé", cfg.centre),row('Points', c.points),row('Moyenne', c.moyenne),row('Aptitude physique', c.aptitude),row('Option', opt),row('Filière', opt === 'ET' ? c.filiere : ''),row('École primaire', cfg.ecole),row('CEB', cfg.circonscription),row('Commune', c.village),row('Province', c.fonction),row('Nom', String(c.nom || '').toUpperCase()),row('Prénom(s)', c.prenoms),row('Lieu de résidence', c.village),row('Tél. des parents', c.contact),row('1er choix', c.choix1),row('2e choix', c.choix2),row('3e choix', c.choix3)])}`);
+    if (libre) pages.push(`${entete}<h1>Attestation de niveau CM2</h1><p>Je soussigné(e), <b>${e(cfg.directeurNom)}</b>, agissant en qualité de ${respEcole} de l'école <b>${e(cfg.ecole)}</b>,</p><p><b>Atteste que :</b></p><p>L'élève <b>${e(nomComplet)}</b>, né(e) le <b>${e(dt(c.dateNaiss))}</b> à <b>${e(c.lieuNaiss)}</b>, a fréquenté l'établissement durant l'année scolaire <b>${e(cfg.anneeScolaire)}</b> la classe du <b>CM2</b> sous le matricule <b>${e(c.matricule)}</b>.</p><p>La présente attestation est délivrée pour servir et valoir ce que de droit.</p><p>Fait à <b>${e(cfg.ville)}</b>, le <b>${e(dt(cfg.dateEdition))}</b>.</p>${signature}`);
+    pages.push('<p class="fin">&nbsp;</p>');
+  });
+  return `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Dossiers CEP</title><style>@page{size:21cm 29.7cm;margin:1.7cm 1.6cm}body{font-family:"Times New Roman",serif;font-size:11pt;color:#000}h1{font-size:15pt;text-align:center;text-transform:uppercase;text-decoration:underline;margin:0 0 12pt}p{margin:0 0 6pt;text-align:justify}p.entete{text-align:center;font-size:9.5pt;text-transform:uppercase;border-bottom:1pt solid #000;padding-bottom:5pt;margin-bottom:14pt}p.lieu{text-align:right;margin-top:10pt}p.fin{margin:0}table.champs{width:100%;border-collapse:collapse;margin:0 0 12pt}table.champs td{border:.5pt solid #999;padding:3pt 5pt;vertical-align:top}table.champs td.lab{width:38%;font-weight:bold;background:#f2f2f2}table.sig{width:100%;border-collapse:collapse;margin-top:14pt}table.sig td.vide{width:55%}table.sig td.droite{text-align:center}table.sig p{margin:0 0 2pt;text-align:center}table.sig p.espace{margin:0;line-height:55pt}table.sig p.deco{font-size:9pt;font-style:italic}</style></head><body>${pages.join(saut)}</body></html>`;
+}
+
+/* =========================================================
+   Modèles officiels
+   ========================================================= */
+const ModChemise = (() => {
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function chemiseConcours6e(e){
+  const optionLigne = e.filiere ? `<b>Option :</b><span class="v opt">${esc(e.option)}</span><b>Filière :</b><span class="v">${esc(e.filiere)}</span>` : `<b>Option :</b><span class="v">${esc(e.option)}</span>`;
+  return `<section class="chemise-page"><div class="titre rose">CONCOURS D'ENTREE EN CLASSE DE 6È, SESSION DE ${esc(e.session || '2026')}</div><div class="cadre rose"><div class="centre"><div class="lib">Centre d'examen demandé</div><div class="val">${esc(e.centre)}</div></div><div class="lib-col c-points">Points</div><div class="lib-col c-moy">Moyenne</div><div class="lib-col c-apt">Aptitude physique</div><div class="case rose c-points">${esc(e.points)}</div><div class="case rose c-moy">${esc(e.moyenne)}</div><div class="case rose c-apt">${esc(e.aptitude)}</div><div class="ligne f-option">${optionLigne}</div><div class="ligne f-ecole"><b>Ecole primaire publique :</b><span class="v">${esc(e.ecole)}</span></div><div class="ligne f-ceb"><b>CEB :</b><span class="v">${esc(e.ceb)}</span></div><div class="ligne f-comm"><b>Commune :</b><span class="v">${esc(e.commune)}</span></div><div class="ligne f-prov"><b>Province :</b><span class="v">${esc(e.province)}</span></div><div class="lib-nom n-nom">Nom du candidat</div><div class="lib-nom n-pre">Prénom(s) du candidat</div><div class="nom-box rose n-nom">${esc(e.nom)}</div><div class="nom-box rose n-pre">${esc(e.prenoms)}</div></div><div class="adr-titre">ADRESSE ACTUELLE DES PARENTS :</div><div class="ligne adr a-lieu">Lieu de résidence :<span class="v res">${esc(e.resLieu)}</span><b>Tél.</b><span class="v">${esc(e.resTel)}</span></div><div class="ligne adr a-comm">Commune :<span class="v">${esc(e.resCommune)}</span></div><div class="ligne adr a-prov"><b>Province :</b><span class="v">${esc(e.resProvince)}</span></div><div class="etabs rose"><div class="titre2">Etablissements demandés par ordre de préférence :</div><div class="ligne e1"><b>- 1er choix :</b><span class="v petit">${esc(e.choix1)}</span></div><div class="ligne e2"><b>- 2è choix :</b><span class="v petit">${esc(e.choix2)}</span></div><div class="ligne e3"><b>- 3è choix :</b><span class="v petit">${esc(e.choix3)}</span></div></div></section>`;
+}
+return { chemiseConcours6e };
+})();
+
+const ModCertificat = (() => {
+const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function dateLongue(d){
+  if(!d) return '';
+  let x, a, m, j;
+  if((x = /^(\d{4})-(\d{2})-(\d{2})/.exec(d))){ a=+x[1]; m=+x[2]; j=+x[3]; }
+  else if((x = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(d))){ j=+x[1]; m=+x[2]; a=+x[3]; }
+  else return d;
+  return String(j).padStart(2,'0') + ' ' + MOIS[m-1] + ' ' + a;
+}
+function dateCourte(d){
+  if(!d) return '';
+  const x = /^(\d{4})-(\d{2})-(\d{2})/.exec(d);
+  return x ? `${x[3]}/${x[2]}/${x[1]}` : d;
+}
+function unCertificat(e, pos){
+  const typeEcole = String(e.ecoleType || 'Publique').toUpperCase();
+  const typeEcoleMin = String(e.ecoleType || 'Publique').toLowerCase();
+  const titreResp = e.responsable === 'Directrice' ? 'La Directrice' : 'Le Directeur';
+  const sig = e.signatureCachet || e.signature;
+  return `<div class="certif ${pos}"><div class="entete">CIRCONSCRIPTION D'EDUCATION<br>DE BASE DE ${esc(e.circonscription)}<div class="tirets"></div>ECOLE PRIMAIRE ${esc(typeEcole)}<br>${esc(e.ecole)}${e.telephone ? `<div class="tel">Tél. : ${esc(e.telephone)}</div>` : ''}</div><div class="armoiries">${e.armoiries ? `<img src="${esc(e.armoiries)}" alt="">` : `<div class="vide">Armoiries</div>`}</div><div class="annee">Année scolaire : ${esc(e.anneeScolaire)}</div><div class="lieu-date">${esc(e.ville)}, le ${esc(dateCourte(e.dateEdition))}</div><div class="titre"><span>CERTIFICAT DE SCOLARITE</span></div><div class="l l1">${titreResp} de l'école primaire ${esc(typeEcoleMin)}<span class="v">${esc(e.ecole)}</span></div><div class="l l2">soussigné(e), certifie que<span class="v">${esc(e.nom)}</span></div><div class="l l3">né<span class="v date">le ${esc(dateLongue(e.naissance))}</span>à<span class="v">${esc(e.lieuNaissance)}</span></div><div class="l l4">fils de<span class="v">${esc(e.pere)}</span></div><div class="l l5">et de<span class="v">${esc(e.mere)}</span></div><div class="l l6">est inscrit(e) dans l'établissement depuis le<span class="v dinsc">${esc(dateCourte(e.dateInscription))}</span>où il/elle fréquente la classe de<span class="v">${esc(e.classe)}</span></div><div class="l l7">sous le matricule<span class="v mat">${esc(e.matricule)}</span>Classe(s) redoublée(s) :<span class="v">${esc(e.redoublements || 'Néant')}</span></div><div class="l l8">En foi de quoi, le présent certificat est délivré pour servir et valoir ce que de droit.</div><div class="dir"><div class="t">${titreResp}</div><div class="sig">${sig ? `<img src="${esc(sig)}" alt="">` : ''}</div><div class="nom">${esc(e.directeurNom)}</div><div class="grade">${esc(e.directeurGrade)}</div>${e.decoration ? `<div class="deco">${esc(e.decoration)}</div>` : ''}</div></div>`;
+}
+function certificatScolarite(e, o = {}){
+  const copies = o.copies ?? 2;
+  return `<section class="certif-page">${unCertificat(e,'haut')}${copies > 1 ? unCertificat(e,'bas') : ''}</section>`;
+}
+return { certificatScolarite };
+})();
+
+const ModFiche = (() => {
+const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function dateLongue(d){
+  if(!d) return '';
+  let x, a, m, j;
+  if((x = /^(\d{4})-(\d{2})-(\d{2})/.exec(d))){ a=+x[1]; m=+x[2]; j=+x[3]; }
+  else if((x = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(d))){ j=+x[1]; m=+x[2]; a=+x[3]; }
+  else return d;
+  return String(j).padStart(2,'0') + ' ' + MOIS[m-1] + ' ' + a;
+}
+function dateCourte(d){ const x = /^(\d{4})-(\d{2})-(\d{2})/.exec(d||''); return x ? `${x[3]}/${x[2]}/${x[1]}` : (d || ''); }
+function ficheInscription6e(e){
+  const eftp = !!e.filiere;
+  const sig = e.signatureCachet || e.signature;
+  const respEcole = e.responsable === 'Directrice' ? 'la Directrice' : 'le Directeur';
+  const sc = e.scolarite || [];
+  const anneesScolaires = String(e.anneeScolaire || '').match(/\d{4}/g) || [];
+  const finActuelle = anneesScolaires.length ? +anneesScolaires[anneesScolaires.length - 1] : 2027;
+  let cm2Idx = sc.findIndex(s => /CM2/i.test(String(s || '')));
+  if (cm2Idx < 0) { cm2Idx = 5; for (let k = 0; k < 8; k++) if (String(sc[k] || '').trim()) cm2Idx = k; }
+  const annees = Array.from({ length: 8 }, (_, k) => { const d = finActuelle - 1 + (k - cm2Idx); return `${d}-${d + 1}`; });
+  const entete = eftp ? `<div class="hd gris hd-pv eftp">N° PV<span>${esc(e.pv)}</span></div><div class="hd gris hd-opt eftp"><div class="r1"><div class="c1">Option</div><div class="c2">${esc(e.option)}</div></div><div class="r2">Filière</div><div class="r3">${esc(e.filiere)}</div></div>` : `<div class="hd gris hd-pv eg">N° PV<span>${esc(e.pv)}</span></div><div class="hd gris hd-opt eg"><div class="o1">OPTION</div><div class="o2">${esc(e.option)}</div></div>`;
+  const titu = !!e.titulaireCEP;
+  return `<section class="fiche-page"><div class="hd gris hd-titre"><div>FICHE D'INSCRIPTION AU CONCOURS</div><div>D'ENTREE EN CLASSE DE SIXIEME</div><div>SESSION DE ${esc(e.session || '2026')}</div></div>${entete}<div class="circ">CIRCONSCRIPTION DE ${esc(e.circonscription)}</div><div class="l nom">NOM :<span class="v">${esc(e.nom)}</span></div><div class="l pre">PRENOM(S) :<span class="v">${esc(e.prenoms)}</span></div><div class="l nai">DATE DE NAISSANCE :<span class="v naiss">${esc(dateLongue(e.naissance))}</span><span class="sep">LIEU :</span><span class="v">${esc(e.lieuNaissance)}</span></div><div class="l nat">NATIONALITE :<span class="v nat">${esc(e.nationalite)}</span><span class="sep">SEXE :</span><span class="v">${esc(e.sexe)}</span></div><div class="l eco">ECOLE FREQUENTEE EN ${esc(e.anneeScolaire)} :<span class="v">${esc(e.ecole)}</span></div><div class="l reg">REGION :<span class="v reg">${esc(e.region)}</span><span class="sep">PROVINCE :</span><span class="v">${esc(e.province)}</span></div><div class="l com">COMMUNE/ARRONDISSEMENT :<span class="v">${esc(e.commune)}</span></div><div class="l dero"><b>DEROULEMENT DE LA SCOLARITE :</b></div>${annees.map((a, i) => `<div class="l an" style="top:${(108.7 + i*5.45).toFixed(1)}mm">${a} :<span class="v">${esc(sc[i])}</span></div>`).join('')}<div class="duree">DUREE TOTALE DE LA SCOLARITE :<span class="v">${esc(e.duree)}</span>ANNEES</div><div class="l decl titu ${titu ? '' : 'rayee'}">- Je suis titulaire du CEP de la session de <span class="blanc">${esc(e.sessionCEP) || '________'}</span> et ci-joint une copie de mon diplôme.</div><div class="marque" style="left:186.5mm;top:154.8mm">(1)</div><div class="l decl cand ${titu ? 'rayee' : ''}">- Je suis candidat(e) au CEP de la session de ${esc(e.session || '2026')}.</div><div class="l pere">Profession du père :<span class="v">${esc(e.professionPere)}</span></div><div class="l mere">Profession de la mère :<span class="v">${esc(e.professionMere)}</span></div><div class="l res1"><b>RESIDENCE ACTUELLE DES PARENTS :</b><span class="sep">- Ville/Village :</span><span class="v">${esc(e.resVille)}</span></div><div class="l res2">- Secteur/Arrondissement/Quartier :<span class="v">${esc(e.resSecteur)}</span></div><div class="l res3">- Contact des parents/tuteurs :<span class="v">${esc(e.resContact)}</span></div><div class="etabs"><div class="t">Etablissements demandés en cas de succès et classés par ordre de préférence :</div><div class="l e1">- 1°)<span class="v">${esc(e.choix1)}</span></div><div class="l e2">- 2°)<span class="v">${esc(e.choix2)}</span></div><div class="l e3">- 3°)<span class="v">${esc(e.choix3)}</span></div><div class="m2">(2)</div></div><div class="sig-g">Signature du père ou tuteur</div><div class="sig-d">Signature du candidat</div><div class="certifie">Renseignements certifiés exacts par ${respEcole} de l'école à ${esc(e.ville)}, le ${esc(dateCourte(e.dateEdition))}</div><div class="notes">(1) : Rayer la mention inutile.<br>(2) : Rappeler en cette occasion que les élèves affectés<br><span class="s">dans les établissements privés conventionnés doivent</span><br><span class="s">contribuer au paiement des frais de scolarité.</span></div><div class="dir"><div class="sig">${sig ? `<img src="${esc(sig)}" alt="">` : ''}</div><div class="nom">${esc(e.directeurNom)}</div><div class="grade">${esc(e.directeurGrade)}</div>${e.decoration ? `<div class="deco">${esc(e.decoration)}</div>` : ''}</div></section>`;
+}
+return { ficheInscription6e };
+})();
+
+const ModChemiseCEP = (() => {
+const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function dateLongue(d){
+  if(!d) return '';
+  let x, a, m, j;
+  if((x = /^(\d{4})-(\d{2})-(\d{2})/.exec(d))){ a=+x[1]; m=+x[2]; j=+x[3]; }
+  else if((x = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(d))){ j=+x[1]; m=+x[2]; a=+x[3]; }
+  else return d;
+  return String(j).padStart(2,'0') + ' ' + MOIS[m-1] + ' ' + a;
+}
+function chemiseCEP(e){
+  return `<section class="chemise-cep-page"><div class="bande"></div><div class="titre"><div>EXAMEN DU CERTIFICAT D'ETUDES PRIMAIRES</div><div>SESSION DE ${esc(e.session || '2027')}</div></div><div class="cadre"><div class="centre"><div class="lib">Centre d'examen demandé</div><div class="val">${esc(e.centre)}</div></div><div class="champ f-pv"><b>N° PV :</b><span class="v">${esc(e.pv)}</span></div><div class="champ f-nom"><b>NOM :</b><span class="v">${esc(e.nom)}</span></div><div class="champ f-prenoms"><b>PRENOM(S) :</b><span class="v">${esc(e.prenoms)}</span></div><div class="champ f-sexe"><b>SEXE :</b><span class="v court">${esc(e.sexe)}</span><b>DATE DE NAISSANCE :</b><span class="v">${esc(dateLongue(e.naissance))}</span></div><div class="champ f-ecole"><b>Ecole primaire publique :</b><span class="v">${esc(e.ecole)}</span></div></div></section>`;
+}
+return { chemiseCEP };
+})();
+
+const ModAttestation = (() => {
+const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function dateLongue(d){
+  if(!d) return '';
+  let x, a, m, j;
+  if((x = /^(\d{4})-(\d{2})-(\d{2})/.exec(d))){ a=+x[1]; m=+x[2]; j=+x[3]; }
+  else if((x = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(d))){ j=+x[1]; m=+x[2]; a=+x[3]; }
+  else return d;
+  return String(j).padStart(2,'0') + ' ' + MOIS[m-1] + ' ' + a;
+}
+function dateCourte(d){
+  if(!d) return '';
+  const x = /^(\d{4})-(\d{2})-(\d{2})/.exec(d);
+  return x ? `${x[3]}/${x[2]}/${x[1]}` : d;
+}
+function uneAttestation(e, pos){
+  const typeEcole = String(e.ecoleType || 'Publique').toUpperCase();
+  const typeEcoleMin = String(e.ecoleType || 'Publique').toLowerCase();
+  const titreResp = e.responsable === 'Directrice' ? 'La Directrice' : 'Le Directeur';
+  const sig = e.signatureCachet || e.signature;
+  return `<div class="certif ${pos}"><div class="entete">CIRCONSCRIPTION D'EDUCATION<br>DE BASE DE ${esc(e.circonscription)}<div class="tirets"></div>ECOLE PRIMAIRE ${esc(typeEcole)}<br>${esc(e.ecole)}${e.telephone ? `<div class="tel">Tél. : ${esc(e.telephone)}</div>` : ''}</div><div class="armoiries">${e.armoiries ? `<img src="${esc(e.armoiries)}" alt="">` : `<div class="vide">Armoiries</div>`}</div><div class="annee">Année scolaire : ${esc(e.anneeScolaire)}</div><div class="lieu-date">${esc(e.ville)}, le ${esc(dateCourte(e.dateEdition))}</div><div class="titre"><span>ATTESTATION DE NIVEAU CM2</span></div><div class="l l1">${titreResp} de l'école primaire ${esc(typeEcoleMin)}<span class="v">${esc(e.ecole)}</span></div><div class="l l2">soussigné(e), atteste que<span class="v">${esc(e.nom)}</span></div><div class="l l3">né<span class="v date">le ${esc(dateLongue(e.naissance))}</span>à<span class="v">${esc(e.lieuNaissance)}</span></div><div class="l l4">fils de<span class="v">${esc(e.pere)}</span></div><div class="l l5">et de<span class="v">${esc(e.mere)}</span></div><div class="l l6">a fréquenté l'établissement durant l'année scolaire<span class="v dinsc">${esc(e.anneeScolaire)}</span>la classe du<span class="v">CM2</span></div><div class="l l7">sous le matricule<span class="v mat">${esc(e.matricule)}</span></div><div class="l l8">La présente attestation est délivrée pour servir et valoir ce que de droit.</div><div class="dir"><div class="t">${titreResp}</div><div class="sig">${sig ? `<img src="${esc(sig)}" alt="">` : ''}</div><div class="nom">${esc(e.directeurNom)}</div><div class="grade">${esc(e.directeurGrade)}</div>${e.decoration ? `<div class="deco">${esc(e.decoration)}</div>` : ''}</div></div>`;
+}
+function attestationNiveau(e){ return `<section class="certif-page">${uneAttestation(e,'haut')}${uneAttestation(e,'bas')}</section>`; }
+return { attestationNiveau };
+})();
+
+/* =========================================================
+   Moteur documents
+   ========================================================= */
+(function () {
+  'use strict';
+  const MM = 3.7795;
+  const $  = (s, r = document) => r.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const sansAccent = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const CFG_KEY = 'cep_docs_config_v1';
+  const CFG_VERSION = 3;
+  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const CFG_VERROUILLE = { circonscription:'KOMSILGA 1', ecole:'TAMPOUY', ecoleType:'Publique', ville:'TAMPOUY', anneeScolaire:'2026/2027', session:'2027', centre:'KOMSILGA A', responsable:'Directeur', directeurNom:'Maldja OUOBA', directeurGrade:'Professeur Certifié des Écoles', telephone:'76138005' };
+  const CHAMPS_VERROUILLES = Object.keys(CFG_VERROUILLE);
+  const CFG_DEFAUT = Object.assign({ version:CFG_VERSION, contactDirecteur:'', decoration:'', dateEdition:aujourdhui, armoiries:'', signature:'', signatureCachet:'' }, CFG_VERROUILLE);
+  const cfg = Object.assign({}, CFG_DEFAUT);
+  let configChargee = false, versionStockee = null;
+  const brut = localStorage.getItem(CFG_KEY);
+  if (brut) {
+    try {
+      const enregistre = JSON.parse(brut);
+      if (enregistre && typeof enregistre === 'object') { versionStockee = enregistre.version ?? 1; Object.assign(cfg, enregistre); configChargee = true; }
+    } catch (e) {}
+  }
+  if (!configChargee) sauverConfig();
+  else if (versionStockee !== CFG_VERSION) { Object.assign(cfg, CFG_VERROUILLE, { version:CFG_VERSION }); sauverConfig(); }
+  function sauverConfig() {
+    try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
+    catch (e) { try { localStorage.setItem(CFG_KEY, JSON.stringify(Object.assign({}, cfg, { armoiries:'', signature:'', signatureCachet:'' }))); } catch (e2) {} }
+  }
+  const DOCS = {
+    certificat: { titre:"Certificat de scolarité", sous:"2 exemplaires sur une page", w:210, h:297, requis:() => ['nom','prenom','date_naiss','lieu_naiss','matricule','nom_pere','nom_mere','date_inscription'], build:c => ModCertificat.certificatScolarite(pourCertificat(c)) },
+    fiche:   { titre:"Fiche d'inscription", sous:"Concours d'entrée en 6e · EG / ET", w:210, h:297, requis:c => ['nom','prenom','date_naiss','lieu_naiss','sexe','province','commune','contact','res_ville','choix','scolarite'].concat(c.option==='EFTP' ? ['filiere'] : []), build:c => ModFiche.ficheInscription6e(pourFiche(c)) },
+    chemiseCEP: { titre:"Chemise du CEP", sous:"Examen du CEP · A4 paysage", w:297, h:210, requis:c => ['nom','prenom','sexe','date_naiss','pv'], build:c => ModChemiseCEP.chemiseCEP(pourChemiseCEP(c)) },
+    chemise: { titre:"Chemise du concours 6e", sous:"EG / ET · A4 paysage", w:297, h:210, requis:c => ['nom','prenom','province','commune','res_ville','contact','choix'].concat(c.option==='EFTP' ? ['filiere'] : []), build:c => ModChemise.chemiseConcours6e(pourChemise(c)) },
+    attestation: { titre:"Attestation de niveau CM2", sous:"Candidats libres du CEP", w:210, h:297, requis:c => ['nom','prenom','date_naiss','lieu_naiss','matricule','nom_pere','nom_mere'], build:c => ModAttestation.attestationNiveau(pourAttestation(c)) }
+  };
+  const LIBELLES = { nom:'Nom', prenom:'Prénom(s)', date_naiss:'Date de naissance', lieu_naiss:'Lieu de naissance', sexe:'Sexe', matricule:'Matricule', nom_pere:'Nom du père', nom_mere:'Nom de la mère', date_inscription:"Date d'inscription", province:'Province', commune:'Commune', contact:'Contact des parents', res_ville:'Ville/village de résidence', choix:'Établissements demandés', scolarite:'Déroulement de la scolarité', filiere:'Filière', pv:'N° PV' };
+  function normaliser(c, i) {
+    const o = Object.assign({}, c);
+    o.id = String(c.id ?? c.matricule ?? 'c' + i);
+    o.prenom = c.prenom ?? c.prenoms ?? '';
+    o.option = /^(et|eftp)/i.test(String(c.option || '').trim()) ? 'EFTP' : 'EG';
+    o.profession_pere = c.profession_pere ?? c.pere ?? '';
+    o.profession_mere = c.profession_mere ?? c.mere ?? '';
+    o.choix = Array.isArray(c.choix) ? c.choix : [];
+    let s = c.scolarite; if (typeof s === 'string') s = s.split(';');
+    o.scolarite = Array.from({ length: 8 }, (_, k) => (s && s[k]) || '');
+    o.libre = c.libre === true || /^(oui|1|true|vrai)$/i.test(String(c.libre ?? ''));
+    return o;
+  }
+  const vide = (c, k) => k === 'choix' ? !c.choix.some(Boolean) : k === 'scolarite' ? !c.scolarite.some(Boolean) : !String(c[k] ?? '').trim();
+  const manquants = (type, c) => DOCS[type].requis(c).filter(k => vide(c, k)).map(k => LIBELLES[k]);
+  function pourCertificat(c) { return { anneeScolaire:cfg.anneeScolaire, circonscription:cfg.circonscription, ecole:cfg.ecole, telephone:cfg.telephone, ville:cfg.ville, dateEdition:cfg.dateEdition, nom:`${c.nom} ${c.prenom}`.trim(), naissance:c.date_naiss, lieuNaissance:c.lieu_naiss, pere:c.nom_pere, mere:c.nom_mere, dateInscription:c.date_inscription, classe:c.classe || classeParam, matricule:c.matricule, redoublements:c.redoublements || 'Néant', ecoleType:cfg.ecoleType, responsable:cfg.responsable, decoration:cfg.decoration, directeurNom:cfg.directeurNom, directeurGrade:cfg.directeurGrade, armoiries:cfg.armoiries, signature:cfg.signatureCachet || cfg.signature }; }
+  function pourFiche(c) { return { session:cfg.session, circonscription:cfg.circonscription, pv:c.pv, option:c.option, filiere:c.option === 'EFTP' ? c.filiere : '', nom:String(c.nom).toUpperCase(), prenoms:c.prenom, naissance:c.date_naiss, lieuNaissance:c.lieu_naiss, nationalite:c.nationalite || 'Burkinabè', sexe:c.sexe, ecole:c.ecole || cfg.ecole, anneeScolaire:cfg.anneeScolaire, region:c.region, province:c.province, commune:c.commune, scolarite:c.scolarite, duree:c.duree || (c.scolarite.filter(Boolean).length || ''), titulaireCEP:!!c.cep_session, sessionCEP:c.cep_session, professionPere:c.profession_pere, professionMere:c.profession_mere, resVille:c.res_ville, resSecteur:c.res_secteur, resContact:c.contact, choix1:c.choix[0], choix2:c.choix[1], choix3:c.choix[2], ville:cfg.ville, dateEdition:cfg.dateEdition, responsable:cfg.responsable, decoration:cfg.decoration, directeurNom:cfg.directeurNom, directeurGrade:cfg.directeurGrade, signature:cfg.signatureCachet || cfg.signature }; }
+  function pourChemise(c) { return { session:cfg.session, centre:c.centre_examen || cfg.centre, points:c.points, moyenne:c.moyenne, aptitude:c.aptitude, option:c.option, filiere:c.option === 'EFTP' ? c.filiere : '', ecole:c.ecole || cfg.ecole, ceb:c.ceb || cfg.circonscription, commune:c.commune, province:c.province, nom:String(c.nom).toUpperCase(), prenoms:c.prenom, resLieu:c.res_ville, resTel:c.contact, resCommune:c.res_commune || c.commune, resProvince:c.province, choix1:c.choix[0], choix2:c.choix[1], choix3:c.choix[2] }; }
+  function pourChemiseCEP(c) { return { session:cfg.session, centre:c.centre_examen || cfg.centre, pv:c.pv, nom:String(c.nom).toUpperCase(), prenoms:c.prenom, sexe:c.sexe, naissance:c.date_naiss, ecole:c.ecole || cfg.ecole }; }
+  function pourAttestation(c) { return { ecole:cfg.ecole, ecoleType:cfg.ecoleType, circonscription:cfg.circonscription, telephone:cfg.telephone, ville:cfg.ville, anneeScolaire:cfg.anneeScolaire, dateEdition:cfg.dateEdition, nom:String(c.nom).toUpperCase(), prenoms:c.prenom, naissance:c.date_naiss, lieuNaissance:c.lieu_naiss, pere:c.nom_pere, mere:c.nom_mere, matricule:c.matricule, responsable:cfg.responsable, directeurNom:cfg.directeurNom, directeurGrade:cfg.directeurGrade, decoration:cfg.decoration, armoiries:cfg.armoiries, signature:cfg.signatureCachet || cfg.signature }; }
+  let candidats = [];
+  const etat = { id:null, type:'fiche', filtre:'tous', recherche:'', coches:new Set() };
+  let surSelection = null;
+  const actif = () => candidats.find(c => c.id === etat.id);
+  const visibles = () => candidats.filter(c => (etat.filtre === 'tous' || c.option === etat.filtre) && (!etat.recherche || sansAccent(`${c.nom} ${c.prenom} ${c.matricule ?? ''}`).includes(sansAccent(etat.recherche))));
+  const racine = document.createElement('div'); racine.id = 'md-print'; document.body.appendChild(racine);
+  window.addEventListener('afterprint', () => { racine.innerHTML = ''; });
+  function rendreListe() {
+    const liste = visibles();
+    $('#md-candidats').innerHTML = liste.length ? liste.map(c => `<li class="md-cand ${c.id === etat.id ? 'actif' : ''}" data-id="${esc(c.id)}"><input type="checkbox" ${etat.coches.has(c.id) ? 'checked' : ''}><button type="button" class="md-cand-btn"><span class="nom">${esc(c.nom)} ${esc(c.prenom)}</span><span class="sous">${esc(c.matricule || 'Sans matricule')}</span></button><span class="md-badge ${c.option === 'EFTP' ? 'eftp' : ''}">${c.option}</span></li>`).join('') : `<li class="md-vide">Aucun candidat.</li>`;
+    const n = etat.coches.size;
+    $('#md-compte').textContent = n ? `${n} coché${n > 1 ? 's' : ''}` : `${candidats.length} candidat${candidats.length > 1 ? 's' : ''}`;
+    $('#md-tout').checked = liste.length > 0 && liste.every(c => etat.coches.has(c.id));
+    $('#md-imp-lot').disabled = n === 0;
+    $('#md-imp-lot').textContent = n ? `🖨 Imprimer les ${n} coché${n > 1 ? 's' : ''}` : '🖨 Imprimer cochés';
+  }
+  function rendreTypes() { $('#md-types').innerHTML = Object.entries(DOCS).map(([k, d]) => `<button type="button" class="md-type" data-type="${k}" aria-pressed="${k === etat.type}"><strong>${d.titre}</strong><span>${d.sous}</span></button>`).join(''); }
+  function rendreApercu() {
+    const c = actif(), d = DOCS[etat.type], cible = $('#md-echelle'), zone = $('#md-apercu');
+    const st = $('#md-statut'), al = $('#md-alerte');
+    if (!c) { cible.innerHTML = ''; zone.style.height = '200px'; st.innerHTML = 'Aucun candidat sélectionné.'; al.hidden = true; $('#md-imp-un').disabled = true; return; }
+    $('#md-imp-un').disabled = false;
+    st.innerHTML = `<b>${esc(c.nom)} ${esc(c.prenom)}</b> · option ${c.option}`;
+    if (etat.type === 'attestation') st.innerHTML += c.libre ? ' · <b>candidat libre</b>' : ' · <span style="color:#8a4b00">non libre (attestation non jointe)</span>';
+    const m = manquants(etat.type, c);
+    al.hidden = !m.length;
+    if (m.length) al.innerHTML = `<b>À compléter :</b> ${m.join(', ')}.`;
+    cible.innerHTML = d.build(c);
+    ajuster();
+  }
+  function ajuster() {
+    const d = DOCS[etat.type], zone = $('#md-apercu'), cible = $('#md-echelle');
+    const dispo = zone.clientWidth - 24;
+    if (dispo <= 0) return;
+    const largeur = d.w * MM, s = Math.min(1, dispo / largeur);
+    cible.style.width = largeur + 'px'; cible.style.transform = `scale(${s})`;
+    zone.style.height = (d.h * MM * s + 24) + 'px';
+  }
+  const toutRendre = () => { rendreListe(); rendreTypes(); rendreApercu(); };
+  function imprimer(liste) { if (!liste.length) return; racine.innerHTML = liste.map(c => DOCS[etat.type].build(c)).join(''); window.print(); }
+  function dossier(c) { return [DOCS.certificat.build(c), DOCS.fiche.build(c), DOCS.chemiseCEP.build(c), DOCS.chemise.build(c), c.libre ? DOCS.attestation.build(c) : ''].join(''); }
+  function imprimerDossiers(ids) { const liste = (ids && ids.length) ? candidats.filter(c => ids.includes(c.id)) : candidats; if (!liste.length) return; racine.innerHTML = liste.map(dossier).join(''); window.print(); }
+  $('#md-recherche').addEventListener('input', e => { etat.recherche = e.target.value; rendreListe(); });
+  document.querySelector('.md-filtres').addEventListener('click', e => { const b = e.target.closest('button[data-filtre]'); if (!b) return; etat.filtre = b.dataset.filtre; document.querySelectorAll('.md-filtres button').forEach(x => x.setAttribute('aria-pressed', x === b)); rendreListe(); });
+  $('#md-tout').addEventListener('change', e => { visibles().forEach(c => e.target.checked ? etat.coches.add(c.id) : etat.coches.delete(c.id)); rendreListe(); });
+  $('#md-candidats').addEventListener('click', e => { const li = e.target.closest('li[data-id]'); if (!li) return; if (e.target.matches('input[type=checkbox]')) { e.target.checked ? etat.coches.add(li.dataset.id) : etat.coches.delete(li.dataset.id); rendreListe(); return; } etat.id = li.dataset.id; rendreListe(); rendreApercu(); if (surSelection) surSelection(actif()); });
+  $('#md-types').addEventListener('click', e => { const b = e.target.closest('button[data-type]'); if (!b) return; etat.type = b.dataset.type; rendreTypes(); rendreApercu(); });
+  $('#md-imp-un').addEventListener('click', () => { const c = actif(); if (c) imprimer([c]); });
+  $('#md-imp-lot').addEventListener('click', () => imprimer(candidats.filter(c => etat.coches.has(c.id))));
+  $('#md-imp-dossiers').addEventListener('click', () => { const ids = etat.coches.size ? [...etat.coches] : (etat.id ? [etat.id] : []); if (!ids.length) return; imprimerDossiers(ids); });
+  window.addEventListener('resize', ajuster);
+  if (window.ResizeObserver) new ResizeObserver(ajuster).observe($('#md-apercu'));
+  function setCandidats(liste) { candidats = (liste || []).map(normaliser); etat.coches = new Set([...etat.coches].filter(id => candidats.some(c => c.id === id))); if (!actif()) etat.id = candidats[0] ? candidats[0].id : null; toutRendre(); }
+  window.MonEcoleDocuments = {
+    init(o = {}) { if (o.config) { Object.assign(cfg, o.config); sauverConfig(); } if (typeof o.onSelect === 'function') surSelection = o.onSelect; setCandidats(o.candidats); },
+    setCandidats,
+    getConfig() { return Object.assign({}, cfg); },
+    get champsVerrouilles() { return CHAMPS_VERROUILLES.slice(); },
+    setConfig(c) { Object.assign(cfg, c, { version:CFG_VERSION }); sauverConfig(); rendreApercu(); return Object.assign({}, cfg); },
+    resetConfig() { Object.assign(cfg, CFG_DEFAUT); sauverConfig(); rendreApercu(); return Object.assign({}, cfg); },
+    selectionner(id) { etat.id = String(id); toutRendre(); },
+    rafraichir() { ajuster(); },
+    imprimerDossiers,
+    getCoches() { return [...etat.coches]; },
+    getSelection() { return etat.id; },
+    cocherTous(v = true) { if (v) candidats.forEach(c => etat.coches.add(c.id)); else etat.coches.clear(); rendreListe(); }
+  };
+})();
+
+/* =========================================================
+   Liaison candidats <-> documents
+   ========================================================= */
+function versCandidatDocument(c){
+  const scolarite = String(c.scolarite || '').split(';').map(s => s.trim());
+  return {
+    id: c.matricule, matricule: c.matricule, nom: c.nom, prenom: c.prenoms, prenoms: c.prenoms, sexe: c.sexe,
+    date_naiss: c.dateNaiss, lieu_naiss: c.lieuNaiss, nationalite: c.nationalite || 'Burkinabè',
+    option: c.option6e === 'ET' ? 'EFTP' : 'EG', filiere: c.filiere || '', libre: c.libre === true || /^(oui|1|true|vrai)$/i.test(String(c.libre ?? '')),
+    pv: c.pv || c.matricule, ecole: c.ecole || '', ceb: c.ceb || '', commune: c.village || '', province: c.fonction || '', region: c.region || '',
+    classe: c.classe || classeParam, date_inscription: c.dateInscription || '', redoublements: c.redoublements || '',
+    nom_pere: c.pere || '', nom_mere: c.mere || '', profession_pere: '', profession_mere: '',
+    contact: c.contact || '', res_ville: c.village || '', res_secteur: c.resSecteur || '', res_commune: c.village || '',
+    choix: [c.choix1 || '', c.choix2 || '', c.choix3 || ''], scolarite, cep_session: c.cepSession || '',
+    aptitude: c.aptitude || '', points: c.points || '', moyenne: c.moyenne || ''
+  };
+}
+function syncDocuments(){ if (!window.MonEcoleDocuments) return; window.MonEcoleDocuments.setCandidats(candidats.map(versCandidatDocument)); }
+const apercuOuvert = () => document.getElementById('doc-preview').style.display !== 'none';
+function ouvrirApercu(){ document.getElementById('doc-preview').style.display = 'block'; }
+function majTitreApercu(c){ if (!c) return; document.getElementById('doc-preview-title').textContent = `📄 ${c.nom} ${c.prenom || c.prenoms || ''}${c.matricule ? ' (' + c.matricule + ')' : ''}`; }
+function showDocs(index){
+  const c = candidats[index]; if (!c) return;
+  ouvrirApercu(); syncDocuments();
+  window.MonEcoleDocuments.selectionner(c.matricule);
+  majTitreApercu(c);
+  document.getElementById('doc-preview').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function showAllDocs(){
+  if (!candidats.length) { toast('Aucun candidat', 'error'); return; }
+  ouvrirApercu(); syncDocuments();
+  window.MonEcoleDocuments.cocherTous();
+  document.getElementById('doc-preview-title').textContent = `📄 Documents officiels (${candidats.length} candidat(s))`;
+  toast(`${candidats.length} coché(s)`, 'info');
+  document.getElementById('doc-preview').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function closePreview(){ document.getElementById('doc-preview').style.display = 'none'; }
+
+/* =========================================================
+   Onglets
+   ========================================================= */
+function activerOnglet(id){
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const on = b.dataset.tab === id;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === id));
+  if (id === 'tab-liste' && apercuOuvert() && window.MonEcoleDocuments) window.MonEcoleDocuments.rafraichir();
+  if (id === 'tab-pv') renderPVTab();
+  if (id === 'tab-cartes') renderCartes();
+  if (id === 'tab-listes') renderListes();
+  if (id === 'tab-evaluations') { initEvalSelects(); activerEvalSub('eval-jour'); }
+  if (id === 'tab-parametres') renderClassesMatieres();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => activerOnglet(b.dataset.tab)));
+function ouvrirParametres(){ activerOnglet('tab-parametres'); }
+
+/* =========================================================
+   Paramètres
+   ========================================================= */
+const MOT_DE_PASSE = 'Le1er@king';
+let deverrouille = false;
+const PARAM_GROUPES = [
+  { titre:'Établissement', champs:[
+    { key:'circonscription', label:"Circonscription d'Éducation de Base de", placeholder:'KOMSILGA 1' },
+    { key:'ecole',           label:"Nom de l'école", placeholder:'TAMPOUY' },
+    { key:'ecoleType',       label:'École primaire', type:'select', options:['Publique','Privée'] },
+    { key:'telephone',       label:'Téléphone', type:'tel', placeholder:'76138005' },
+    { key:'ville',           label:'Ville', placeholder:'TAMPOUY' },
+    { key:'anneeScolaire',   label:'Année scolaire', placeholder:'2026/2027' },
+    { key:'session',         label:"Session de l'examen", placeholder:'2027' },
+    { key:'centre',          label:"Centre d'examen demandé", placeholder:'KOMSILGA A' },
+    { key:'dateEdition',     label:'Date des documents', type:'date' }
+  ]},
+  { titre:"Responsable de l'école", champs:[
+    { key:'responsable',    label:'Responsable', type:'select', options:['Directeur','Directrice'] },
+    { key:'directeurNom',   label:'Nom & Prénoms DE', placeholder:'Maldja OUOBA' },
+    { key:'directeurGrade', label:'Corps DE', placeholder:'Professeur Certifié des Écoles' },
+    { key:'decoration',     label:'Décoration DE', placeholder:"Chevalier de l'Ordre du Mérite" },
+    { key:'contactDirecteur', label:'Contact du Directeur (carte scolaire)', type:'tel', placeholder:'70100895' }
+  ]},
+  { titre:'Images et cachets', champs:[
+    { key:'signature',      label:'Signature DE', type:'file' },
+    { key:'signatureCachet',label:'Signature + Cachet DE', type:'file' },
+    { key:'armoiries',      label:'Armoiries', type:'file' }
+  ]}
+];
+const CHAMPS_VERROUILLES = new Set(window.MonEcoleDocuments.champsVerrouilles);
+function champParamHTML(f, valeur, verrouille){
+  const attrs = verrouille ? (f.type === 'select' ? ' disabled' : ' readonly') : '';
+  const cls = verrouille ? ' class="param-verrouille"' : '';
+  const input = f.type === 'select'
+    ? `<select data-param="${f.key}"${cls}${attrs}>${f.options.map(o => `<option value="${esc(o)}"${o === valeur ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`
+    : `<input type="${f.type || 'text'}" data-param="${f.key}" value="${esc(valeur ?? '')}"${cls}${attrs}${f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : ''}>`;
+  const cadenas = verrouille ? ' <span class="cadenas" title="Protégé">🔒</span>' : '';
+  return `<div class="field"><label>${esc(f.label)}${cadenas}</label>${input}</div>`;
+}
+function imageParamHTML(f, valeur){
+  return `<div class="field param-image"><label>${esc(f.label)}</label><div class="param-boite"><div class="param-vignette">${valeur ? `<img src="${esc(valeur)}" alt="">` : `<span>Aucune image</span>`}</div><div class="param-btns"><label class="btn btn-sm btn-neutral">Choisir<input type="file" accept="image/*" data-param-img="${f.key}" hidden></label>${valeur ? `<button type="button" class="btn btn-sm btn-danger" data-param-del="${f.key}">Retirer</button>` : ''}</div></div></div>`;
+}
+function majVerrouParametres(){
+  const barre = document.getElementById('param-verrou');
+  const texte = document.getElementById('param-verrou-texte');
+  const btn = document.getElementById('param-verrou-btn');
+  barre.classList.toggle('deverrouille', deverrouille);
+  if (deverrouille) { texte.innerHTML = '🔓 <b>Déverrouillé.</b> Vous pouvez modifier.'; btn.textContent = '🔒 Verrouiller'; }
+  else { texte.innerHTML = '🔒 <b>Protégé.</b> Déverrouillez avec mot de passe.'; btn.textContent = '🔓 Déverrouiller'; }
+}
+function renderParametres(){
+  const cfg = window.MonEcoleDocuments.getConfig();
+  document.getElementById('param-champs').innerHTML = PARAM_GROUPES.map(g => `<fieldset class="param-groupe"><legend>${esc(g.titre)}</legend><div class="form-grid">${g.champs.map(f => f.type === 'file' ? imageParamHTML(f, cfg[f.key]) : champParamHTML(f, cfg[f.key], !deverrouille && CHAMPS_VERROUILLES.has(f.key))).join('')}</div></fieldset>`).join('');
+  majVerrouParametres();
+}
+function signalerParametres(){
+  const el = document.getElementById('param-etat');
+  el.textContent = '✓ Enregistré';
+  el.classList.add('visible');
+  clearTimeout(signalerParametres._t);
+  signalerParametres._t = setTimeout(() => el.classList.remove('visible'), 1800);
+}
+document.getElementById('param-champs').addEventListener('input', e => {
+  const k = e.target.dataset.param; if (!k) return;
+  if (!deverrouille && CHAMPS_VERROUILLES.has(k)) return;
+  window.MonEcoleDocuments.setConfig({ [k]: e.target.value });
+  signalerParametres();
+});
+document.getElementById('param-verrou-btn').addEventListener('click', () => {
+  if (deverrouille) { deverrouille = false; renderParametres(); return; }
+  const saisie = prompt('Mot de passe pour déverrouiller :');
+  if (saisie === null) return;
+  if (saisie !== MOT_DE_PASSE) { alert('Mot de passe incorrect.'); return; }
+  deverrouille = true; renderParametres();
+});
+document.getElementById('param-champs').addEventListener('change', e => {
+  const k = e.target.dataset.paramImg; if (!k) return;
+  const f = e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => { window.MonEcoleDocuments.setConfig({ [k]: reader.result }); renderParametres(); signalerParametres(); };
+  reader.readAsDataURL(f);
+});
+document.getElementById('param-champs').addEventListener('click', e => {
+  const b = e.target.closest('[data-param-del]'); if (!b) return;
+  window.MonEcoleDocuments.setConfig({ [b.dataset.paramDel]: '' }); renderParametres(); signalerParametres();
+});
+document.getElementById('param-reset').addEventListener('click', () => {
+  if (!confirm('Rétablir les valeurs par défaut ?')) return;
+  window.MonEcoleDocuments.resetConfig(); renderParametres(); signalerParametres();
+});
+
+/* =========================================================
+   Classes & Matières
+   ========================================================= */
+const CLASSES_LISTE = ['CP','CP1','CP2','CE','CE1','CE2','CM','CM1','CM2','CEBNF'];
+const MATIERES_OFFICIELLES = {
+  CP1: ['Expression orale','Lecture','Écriture','Mathématiques','SVT','TIC','ECM','APE','Dessin / Chant / Poésie / Danse','APP/TM'],
+  CP2: ['Lecture','Écriture','Expression orale','APE','Arts et culture','APP/TM','Mathématiques','Sciences (SVT)','TIC'],
+  CE1: ['Lecture','Écriture','Vocabulaire','Grammaire','Conjugaison','Orthographe','Expression orale','Expression écrite','Anglais','Calcul mental','Arithmétique','Système métrique','Géométrie','SVT','TICE','Éducation morale et civique','Histoire','Géographie','Activités physiques éducatives (APE)','Dessin, chant, poésie et APP/TM'],
+  CE2: ['Anglais','Expression orale','Expression écrite','Lecture','Grammaire','Conjugaison','Orthographe','Vocabulaire','Écriture','Calcul mental','Arithmétique','Système métrique','Géométrie',"Sciences d'observation",'TIC','Éducation morale et civique','Histoire','Géographie','Animation sportive','Théâtre / musique / danse / culture','Poésie / chant','Dessin','APP / Art ménager'],
+  CM1: ['Lecture','Vocabulaire usuel','Écriture','Vocabulaire théorique','Grammaire','Conjugaison',"Orthographe d'usage",'Orthographe grammaticale','Expression orale','Expression écrite','Anglais','Calcul mental','Arithmétique','Système métrique','Géométrie','SVT','TIC','Histoire','Géographie','E.M.C','EPS','Arts et culture','Production'],
+  CM2: ['Lecture','Écriture','Grammaire','Vocabulaire théorique','Conjugaison',"Orthographe d'usage",'Orthographe grammaticale','Histoire','Géographie','Éducation civique et morale','Dessin','Activités sportives','Arithmétique','Calcul mental','Géométrie','Système métrique',"Sciences d'observation"]
+};
+const CLASSES_MATIERES_KEY = 'cep_classes_matieres_v1';
+let classesMatieres = (function(){
+  try {
+    const stored = JSON.parse(localStorage.getItem(CLASSES_MATIERES_KEY) || 'null');
+    if (stored && typeof stored === 'object') {
+      CLASSES_LISTE.forEach(c => {
+        if (!Array.isArray(stored[c])) stored[c] = [];
+        stored[c].forEach(m => { if (m && !m.id) m.id = 'cm'+Date.now()+Math.random().toString(36).slice(2,6); });
+      });
+      return stored;
+    }
+  } catch(e) {}
+  const init = {}; CLASSES_LISTE.forEach(c => init[c] = []);
+  return init;
+})();
+function saveClassesMatieres(){ try { localStorage.setItem(CLASSES_MATIERES_KEY, JSON.stringify(classesMatieres)); } catch(e) { toast('Erreur sauvegarde', 'error'); } }
+const CLASSE_PARAM_KEY = 'cep_classe_param_v1';
+let classeParam = (function(){
+  try {
+    const v = localStorage.getItem(CLASSE_PARAM_KEY);
+    if (v && CLASSES_LISTE.includes(v)) return v;
+  } catch(e) {}
+  return 'CM2';
+})();
+function saveClasseParam(){
+  try { localStorage.setItem(CLASSE_PARAM_KEY, classeParam); } catch(e) {}
+}
+function renderClassesMatieres(){
+  const container = document.getElementById('classes-matieres-list');
+  if (!container) return;
+  if (!CLASSES_LISTE.includes(classeParam)) classeParam = CLASSES_LISTE[0];
+  const matieres = classesMatieres[classeParam] || [];
+  container.innerHTML = `<div class="classe-selection"><label for="classe-param-select">Classe à paramétrer</label><select id="classe-param-select" onchange="changerClasseParametres(this.value)">${CLASSES_LISTE.map(c => `<option value="${c}"${c === classeParam ? ' selected' : ''}>${c}</option>`).join('')}</select><span class="classe-selection-info">${matieres.length} matière${matieres.length > 1 ? 's' : ''} définie${matieres.length > 1 ? 's' : ''} · notes sur 10</span></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 6px"><button type="button" class="btn btn-sm btn-success" onclick="prefillMatieresClasseUI()">⚡ Pré-remplir ${classeParam}</button><button type="button" class="btn btn-sm btn-neutral" onclick="prefillToutesMatieres()">⚡ Pré-remplir toutes les classes</button><span style="font-size:.72rem;color:#7c8b9a">Listes officielles DPEPPNF · coef 1 · notes sur 10 (modifiables)</span></div><div class="classe-card ouverte"><div class="classe-head"><span class="classe-nom">${classeParam}</span><span class="classe-count">${matieres.length} matière${matieres.length > 1 ? 's' : ''}</span></div><div class="classe-body"><table class="matieres-table"><thead><tr><th>Matière</th><th style="width:80px">Coef</th><th style="width:100px">Notée sur</th><th style="width:50px"></th></tr></thead><tbody>${matieres.length ? matieres.map((m, i) => `<tr><td><input type="text" value="${esc(m.nom)}" onchange="modifierMatiereClasse('${classeParam}', ${i}, 'nom', this.value)"></td><td><input type="number" min="1" value="${m.coef}" onchange="modifierMatiereClasse('${classeParam}', ${i}, 'coef', this.value)"></td><td><input type="number" min="1" value="${m.max}" onchange="modifierMatiereClasse('${classeParam}', ${i}, 'max', this.value)"></td><td><button class="btn btn-sm btn-danger" onclick="supprimerMatiereClasse('${classeParam}', ${i})">✕</button></td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:#98a6b5;font-style:italic;padding:14px">Aucune matière pour cette classe.</td></tr>'}</tbody></table><div class="add-matiere-form"><input type="text" id="new-mat-${classeParam}" placeholder="Matière"><input type="number" min="1" value="1" id="new-coef-${classeParam}" placeholder="Coef" style="width:70px"><input type="number" min="1" value="10" id="new-max-${classeParam}" placeholder="Notée sur" style="width:90px"><button class="btn btn-success btn-sm" onclick="ajouterMatiereClasse('${classeParam}')">+ Ajouter</button></div></div></div>`;
+}
+function prefillMatieresClasse(classe, silencieux){
+  const liste = MATIERES_OFFICIELLES[classe];
+  if (!liste || !liste.length) {
+    if (!silencieux) toast('Aucune liste officielle pour ' + classe, 'info');
+    return 0;
+  }
+  if (!classesMatieres[classe]) classesMatieres[classe] = [];
+  const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  const existants = new Set(classesMatieres[classe].map(m => norm(m.nom)));
+  let ajoutees = 0;
+  liste.forEach(nom => {
+    if (existants.has(norm(nom))) return;
+    classesMatieres[classe].push({ id:'cm' + Date.now() + Math.random().toString(36).slice(2,6), nom, coef:1, max:10 });
+    existants.add(norm(nom));
+    ajoutees++;
+  });
+  saveClassesMatieres();
+  return ajoutees;
+}
+function prefillMatieresClasseUI(){
+  const n = prefillMatieresClasse(classeParam);
+  renderClassesMatieres();
+  initEvalSelects();
+  ['jour','trim','exam'].forEach(t => loadOrInitEval(t));
+  toast(n ? n + ' matière' + (n > 1 ? 's' : '') + ' ajoutée' + (n > 1 ? 's' : '') + ' à ' + classeParam
+          : 'Les matières de ' + classeParam + ' sont déjà complètes', n ? 'success' : 'info');
+}
+function prefillToutesMatieres(){
+  let total = 0, classes = 0;
+  Object.keys(MATIERES_OFFICIELLES).forEach(c => {
+    const n = prefillMatieresClasse(c, true);
+    if (n > 0) { total += n; classes++; }
+  });
+  renderClassesMatieres();
+  initEvalSelects();
+  ['jour','trim','exam'].forEach(t => loadOrInitEval(t));
+  toast(total ? total + ' matière' + (total > 1 ? 's' : '') + ' ajoutée' + (total > 1 ? 's' : '') + ' sur ' + classes + ' classe' + (classes > 1 ? 's' : '')
+              : 'Toutes les classes sont déjà complètes', total ? 'success' : 'info');
+}
+function changerClasseParametres(classe){
+  if (!CLASSES_LISTE.includes(classe)) return;
+  classeParam = classe;
+  saveClasseParam();
+  renderClassesMatieres();
+  initEvalSelects();
+  ['jour','trim','exam'].forEach(t => loadOrInitEval(t));
+  const form = document.getElementById('form-candidat');
+  if (form && form.classe) form.classe.value = classeParam;
+  toast(`Classe active : ${classeParam} (appliquée partout)`);
+}
+function ajouterMatiereClasse(classe){
+  const nom = document.getElementById(`new-mat-${classe}`).value.trim();
+  const coef = parseInt(document.getElementById(`new-coef-${classe}`).value) || 1;
+  const max = parseInt(document.getElementById(`new-max-${classe}`).value) || 10;
+  if (!nom){ toast('Nom requis','error'); return; }
+  if (!classesMatieres[classe]) classesMatieres[classe] = [];
+  classesMatieres[classe].push({ id:'cm'+Date.now()+Math.random().toString(36).slice(2,6), nom, coef:Math.max(1,coef), max:Math.max(1,max) });
+  saveClassesMatieres();
+  document.getElementById(`new-mat-${classe}`).value = '';
+  renderClassesMatieres();
+  toast(`Matière « ${nom} » ajoutée à ${classe}`);
+}
+function modifierMatiereClasse(classe, idx, champ, val){
+  if (!classesMatieres[classe] || !classesMatieres[classe][idx]) return;
+  if (champ === 'coef' || champ === 'max') val = Math.max(1, parseInt(val) || 1);
+  else if (champ === 'nom') { val = String(val).trim(); if (!val) return; }
+  classesMatieres[classe][idx][champ] = val;
+  saveClassesMatieres();
+}
+function supprimerMatiereClasse(classe, idx){
+  if (!classesMatieres[classe] || !classesMatieres[classe][idx]) return;
+  if (!confirm(`Retirer « ${classesMatieres[classe][idx].nom} » de ${classe} ?`)) return;
+  classesMatieres[classe].splice(idx, 1);
+  saveClassesMatieres(); renderClassesMatieres(); toast('Matière retirée','info');
+}
+
+/* =========================================================
+   Gestion évaluations
+   ========================================================= */
+const EVALUATIONS_KEY = 'cep_evaluations_v1';
+let evaluations = (function(){
+  try {
+    const stored = JSON.parse(localStorage.getItem(EVALUATIONS_KEY) || 'null');
+    if (stored && typeof stored === 'object') { stored.journalieres = stored.journalieres || {}; stored.trimestrielles = stored.trimestrielles || {}; stored.examens = stored.examens || {}; return stored; }
+  } catch(e) {}
+  return { journalieres:{}, trimestrielles:{}, examens:{} };
+})();
+function saveEvaluations(){ try { localStorage.setItem(EVALUATIONS_KEY, JSON.stringify(evaluations)); } catch(e) { toast('Erreur sauvegarde évaluations', 'error'); } }
+const todayStr = () => new Date().toISOString().slice(0,10);
+const evalState = {
+  jour: { classe:'', date:todayStr(), matieres:[], notes:{}, selection:[], affichee:false, key:null },
+  trim: { classe:'', trimestre:'1er Trimestre', matieres:[], notes:{}, affichee:false, key:null },
+  exam: { classe:'', niveau:'ecole', date:todayStr(), matieres:[], notes:{}, affichee:false, key:null }
+};
+const EVAL_MAP = {
+  jour: { chips:'ej-matieres', table:'ej-table', saveEtat:'jour-save-etat' },
+  trim: { chips:'et-matieres', table:'et-table', saveEtat:'trim-save-etat', results:'et-resultats' },
+  exam: { chips:'ex-matieres', table:'ex-table', saveEtat:'exam-save-etat', results:'ex-resultats' }
+};
+const EVAL_STORE = { jour:() => evaluations.journalieres, trim:() => evaluations.trimestrielles, exam:() => evaluations.examens };
+function getEvalKey(type){
+  const s = evalState[type]; if (!s.classe) return null;
+  if (type === 'jour')  return s.date ? `${s.classe}__${s.date}` : null;
+  if (type === 'trim')  return s.trimestre ? `${s.classe}__${s.trimestre}` : null;
+  if (type === 'exam')  return (s.niveau && s.date) ? `${s.classe}__${s.niveau}__${s.date}` : null;
+  return null;
+}
+function initEvalSelects(){
+  ['ej-classe','et-classe','ex-classe'].forEach(id => {
+    const sel = document.getElementById(id); if (!sel) return;
+    sel.innerHTML = `<option value="${classeParam}">${classeParam}</option>`;
+    sel.value = classeParam;
+    sel.disabled = true;
+    sel.title = 'Classe définie dans Paramètres — non modifiable ici';
+    sel.classList.add('classe-verrouillee');
+  });
+  evalState.jour.classe = classeParam;
+  evalState.trim.classe = classeParam;
+  evalState.exam.classe = classeParam;
+  const ejDate = document.getElementById('ej-date'); if (ejDate && !ejDate.value) ejDate.value = todayStr();
+  const exDate = document.getElementById('ex-date'); if (exDate && !exDate.value) exDate.value = todayStr();
+}
+function onEvalChange(type){
+  if (type === 'jour') { evalState.jour.classe = classeParam; evalState.jour.date = document.getElementById('ej-date').value || ''; }
+  else if (type === 'trim') { evalState.trim.classe = classeParam; evalState.trim.trimestre = document.getElementById('et-trim').value || '1er Trimestre'; }
+  else if (type === 'exam') { evalState.exam.niveau = document.getElementById('ex-niveau').value || 'ecole'; evalState.exam.classe = classeParam; evalState.exam.date = document.getElementById('ex-date').value || ''; }
+  loadOrInitEval(type);
+}
+function matieresDisponiblesClasse(classe){
+  if (!classe || classe === '__ALL__') return [];
+  return (classesMatieres[classe] || []).map((m, i) => ({
+    id: m.id || `cm-${i}-${String(m.nom || 'matiere').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+    nom: m.nom || 'Matière',
+    coef: Number(m.coef) > 0 ? Number(m.coef) : 1,
+    max: Number(m.max) > 0 ? Number(m.max) : 10
+  }));
+}
+function loadOrInitEval(type){
+  const s = evalState[type];
+  if (!s.classe) { s.matieres = []; s.notes = {}; s.affichee = false; s.key = null; if (type === 'jour') s.selection = []; renderEval(type); return; }
+  const key = getEvalKey(type), store = EVAL_STORE[type]();
+  if (s.key !== null && s.key === key) { renderEval(type); return; }
+  s.key = key;
+  if (key && store[key]) {
+    s.matieres = JSON.parse(JSON.stringify(store[key].matieres || []));
+    s.notes = JSON.parse(JSON.stringify(store[key].notes || {}));
+    if (type === 'jour') { s.matieres = s.matieres.slice(0, 2); s.selection = s.matieres.map(m => m.id); }
+    s.affichee = true;
+  } else {
+    s.matieres = [];
+    s.notes = {};
+    if (type === 'jour') s.selection = [];
+    s.affichee = false;
+  }
+  renderEval(type);
+}
+function getStudentsForClasse(classe){
+  if (!classe) return [];
+  if (classe === '__ALL__') return candidats.map(c => ({ key: c.matricule || `anon-${c.nom}-${c.prenoms}`, label: `${c.nom} ${c.prenoms}`.trim() + (c.classe ? ` (${c.classe})` : '') })).sort((a,b) => a.label.localeCompare(b.label, 'fr'));
+  const target = classe.trim().toUpperCase();
+  return candidats.filter(c => (c.classe || '').trim().toUpperCase() === target).map(c => ({ key: c.matricule || `anon-${c.nom}-${c.prenoms}`, label: `${c.nom} ${c.prenoms}`.trim() })).sort((a,b) => a.label.localeCompare(b.label, 'fr'));
+}
+function getMentionEval(m){
+  if (m >= 8) return { code:'tb', label:'Très Bien' };
+  if (m >= 7) return { code:'b',  label:'Bien' };
+  if (m >= 6) return { code:'ab', label:'Assez Bien' };
+  if (m >= 5) return { code:'p',  label:'Passable' };
+  return { code:'e', label:'Échec' };
+}
+function computeEval(type){
+  const s = evalState[type];
+  const students = getStudentsForClasse(s.classe);
+  const rows = students.map(st => {
+    let total = 0, sommeCoef = 0;
+    s.matieres.forEach(m => {
+      const v = s.notes[st.key] && s.notes[st.key][m.id];
+      const n = (v === '' || v === undefined || v === null) ? null : Number(v);
+      const coef = Number(m.coef) > 0 ? Number(m.coef) : 1;
+      const max = Number(m.max) > 0 ? Number(m.max) : 10;
+      sommeCoef += coef;
+      if (n !== null && !isNaN(n)) total += (n / max) * 10 * coef;
+    });
+    const moyenne = sommeCoef > 0 ? total / sommeCoef : 0;
+    return { key: st.key, label: st.label, total, sommeCoef, moyenne };
+  });
+  const sorted = [...rows].sort((a,b) => b.moyenne - a.moyenne);
+  let rank = 0, prev = null;
+  sorted.forEach((r,i) => { if (prev === null || Math.abs(r.moyenne - prev) > 1e-9) rank = i + 1; r.rank = rank; prev = r.moyenne; });
+  return rows;
+}
+function renderEvalSetup(type, dispo){
+  if (!dispo.length) return '';
+  if (type === 'jour') {
+    const ids = new Set(dispo.map(m => m.id));
+    const sel = (evalState.jour.selection || []).filter(id => ids.has(id));
+    if (sel.length !== (evalState.jour.selection || []).length) evalState.jour.selection = sel;
+    const chips = dispo.map(m => {
+      const checked = sel.includes(m.id);
+      const disabled = !checked && sel.length >= 2;
+      return `<label class="eval-choice${checked ? ' selected' : ''}${disabled ? ' disabled' : ''}"><input type="checkbox" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} onchange="toggleMatiereJour('${m.id}', this.checked)"><b>${esc(m.nom)}</b><small>/${m.max} · coef ${m.coef}</small></label>`;
+    }).join('');
+    return `<div class="eval-setup"><div class="eval-setup-title">Matières de l'évaluation journalière <span class="eval-count">${sel.length}/2</span></div><div class="eval-choices">${chips}</div><div class="eval-setup-actions"><button class="btn btn-success" onclick="ajouterEvaluation('jour')" ${sel.length ? '' : 'disabled'}>➕ Ajouter l'évaluation</button></div><div class="helper">Choisissez 1 ou 2 matières maximum.</div></div>`;
+  }
+  const chips = dispo.map(m => `<span class="eval-chip"><b>${esc(m.nom)}</b><small>/${m.max} · coef ${m.coef}</small></span>`).join('');
+  return `<div class="eval-setup"><div class="eval-setup-title">Toutes les matières de la classe <span class="eval-count">${dispo.length}</span></div><div class="eval-choices">${chips}</div><div class="eval-setup-actions"><button class="btn btn-success" onclick="ajouterEvaluation('${type}')">➕ Ajouter l'évaluation</button></div></div>`;
+}
+function renderEval(type){
+  const s = evalState[type], map = EVAL_MAP[type];
+  const matZone = document.getElementById(map.chips);
+  const tableZone = document.getElementById(map.table);
+  if (!matZone || !tableZone) return;
+
+  if (!s.classe){
+    matZone.innerHTML = '';
+    tableZone.innerHTML = '<div class="eval-empty">La classe est définie dans Paramètres.</div>';
+    renderResultatsEval(type);
+    return;
+  }
+
+  const dispo = matieresDisponiblesClasse(s.classe);
+  if (!s.affichee){
+    matZone.innerHTML = renderEvalSetup(type, dispo);
+    tableZone.innerHTML = dispo.length
+      ? '<div class="eval-empty">Choisissez les matières puis cliquez sur « Ajouter l\'évaluation ».</div>'
+      : '<div class="eval-empty">Aucune matière dans cette classe.<br>Ajoutez les matières dans Paramètres.</div>';
+    renderResultatsEval(type);
+    return;
+  }
+
+  matZone.innerHTML = `<div class="eval-matieres-chips">${s.matieres.length ? s.matieres.map(m => `<span class="eval-chip"><b>${esc(m.nom)}</b><small>/${m.max} · coef ${m.coef}</small></span>`).join('') : '<span style="color:#98a6b5;font-style:italic;font-size:12px">Aucune matière.</span>'}</div><div class="eval-setup-actions" style="margin-bottom:14px">${type === 'jour' ? '<button class="btn btn-sm btn-neutral" onclick="recommencerEval(\'jour\')">↩ Changer les matières</button>' : `<button class="btn btn-sm btn-neutral" onclick="actualiserMatieresEval('${type}')">↺ Recharger depuis la classe</button>`}</div>`;
+
+  const students = getStudentsForClasse(s.classe);
+  if (!students.length){ tableZone.innerHTML = `<div class="eval-empty">Aucun élève dans la classe <b>${esc(s.classe)}</b>.<br>La classe des candidats est définie dans Paramètres ; ajoutez ou modifiez les candidats de cette classe.</div>`; renderResultatsEval(type); return; }
+  if (!s.matieres.length){ tableZone.innerHTML = '<div class="eval-empty">Ajoutez au moins une matière.</div>'; renderResultatsEval(type); return; }
+  const rows = computeEval(type);
+  const showFull = (type === 'trim' || type === 'exam');
+  const moyenneClasse = rows.length ? rows.reduce((x,r) => x + r.moyenne, 0) / rows.length : 0;
+  tableZone.innerHTML = `<div class="eval-stats"><div class="eval-stat"><div class="n">${students.length}</div><div class="l">Élèves</div></div><div class="eval-stat"><div class="n">${s.matieres.length}</div><div class="l">Matières</div></div>${showFull ? `<div class="eval-stat"><div class="n">${moyenneClasse.toFixed(2)}/10</div><div class="l">Moyenne classe</div></div>` : ''}</div><div class="eval-table-wrap"><table class="eval-table" data-eval-table="${type}"><thead><tr><th style="width:36px">#</th><th style="text-align:left;min-width:140px">Élève</th>${s.matieres.map(m => `<th title="${esc(m.nom)} /${m.max} · coef ${m.coef}">${esc(m.nom.length > 12 ? m.nom.slice(0,11)+'…' : m.nom)}</th>`).join('')}${showFull ? '<th>Total</th><th>Moyenne /10</th><th>Rang</th><th>Mention</th>' : ''}</tr></thead><tbody>${rows.map((r,i) => {
+    const mention = getMentionEval(r.moyenne);
+    return `<tr data-row-idx="${i}"><td>${i+1}</td><td style="text-align:left;font-weight:500">${esc(r.label)}</td>${s.matieres.map(m => { const v = (s.notes[r.key] && s.notes[r.key][m.id]) ?? ''; const over = v !== '' && Number(v) > m.max; return `<td><input type="number" min="0" max="${m.max}" value="${esc(v)}" data-student-key="${esc(r.key)}" data-matid="${esc(m.id)}" data-max="${m.max}" class="${over ? 'over' : ''}"></td>`; }).join('')}${showFull ? `<td class="cell-total" style="font-weight:700">${r.total.toFixed(2)}<br><small style="color:#98a6b5;font-weight:400">/ ${(r.sommeCoef * 10).toFixed(0)} · Σ coef ${r.sommeCoef}</small></td><td class="cell-moyenne" style="font-weight:700;color:${r.moyenne >= 5 ? '#1e8449' : '#a93226'}">${r.moyenne.toFixed(2)}/10</td><td><span class="rang">${r.rank}</span></td><td><span class="mention-badge mention-${mention.code}">${mention.label}</span></td>` : ''}</tr>`;
+  }).join('')}</tbody></table></div><div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn btn-success" onclick="sauvegarderEval('${type}')">💾 Enregistrer</button><span class="params-etat" id="${map.saveEtat}"></span></div>`;
+  tableZone.querySelectorAll('input[data-student-key]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const key = inp.dataset.studentKey, matId = inp.dataset.matid, max = Number(inp.dataset.max);
+      if (!s.notes[key]) s.notes[key] = {};
+      s.notes[key][matId] = inp.value;
+      inp.classList.toggle('over', inp.value !== '' && Number(inp.value) > max);
+      if (type === 'trim' || type === 'exam') updateEvalComputed(type);
+    });
+  });
+  renderResultatsEval(type);
+}
+function updateEvalComputed(type){
+  const table = document.querySelector(`table[data-eval-table="${type}"]`); if (!table) return;
+  computeEval(type).forEach((r,i) => {
+    const tr = table.querySelector(`tr[data-row-idx="${i}"]`); if (!tr) return;
+    const mention = getMentionEval(r.moyenne);
+    const t = tr.querySelector('.cell-total'), m = tr.querySelector('.cell-moyenne');
+    const rg = tr.querySelector('.rang'), mt = tr.querySelector('.mention-badge');
+    if (t) t.innerHTML = `${r.total.toFixed(2)}<br><small style="color:#98a6b5;font-weight:400">/ ${(r.sommeCoef * 10).toFixed(0)} · Σ coef ${r.sommeCoef}</small>`;
+    if (m) { m.textContent = `${r.moyenne.toFixed(2)}/10`; m.style.color = r.moyenne >= 5 ? '#1e8449' : '#a93226'; }
+    if (rg) rg.textContent = r.rank;
+    if (mt) { mt.textContent = mention.label; mt.className = `mention-badge mention-${mention.code}`; }
+  });
+  if (type === 'trim' || type === 'exam') renderResultatsEval(type);
+}
+
+/* ===== NOUVEAU : liste des admis + résultats (trimestres & examens blancs) ===== */
+function renderResultatsEval(type){
+  if (type === 'jour') return;
+  const s = evalState[type], map = EVAL_MAP[type];
+  const zone = map.results ? document.getElementById(map.results) : null;
+  if (!zone) return;
+
+  if (!s.classe || !s.affichee || !s.matieres.length) { zone.innerHTML = ''; return; }
+
+  const rows = computeEval(type);
+  if (!rows.length) { zone.innerHTML = ''; return; }
+
+  const SEUIL = 5;
+  const admis    = rows.filter(r => r.moyenne >= SEUIL).sort((a,b) => b.moyenne - a.moyenne || a.label.localeCompare(b.label, 'fr'));
+  const ajournes = rows.filter(r => r.moyenne <  SEUIL).sort((a,b) => b.moyenne - a.moyenne || a.label.localeCompare(b.label, 'fr'));
+  const moyenneClasse = rows.reduce((x,r) => x + r.moyenne, 0) / rows.length;
+  const meilleure     = Math.max(...rows.map(r => r.moyenne));
+  const plusBasse     = Math.min(...rows.map(r => r.moyenne));
+  const tauxReussite  = (admis.length / rows.length) * 100;
+
+  const libelle = type === 'trim'
+    ? `Trimestre : ${esc(s.trimestre)}`
+    : `Examen blanc — ${esc(s.niveau)} · ${esc(s.date)}`;
+  const titre = type === 'trim' ? 'Résultats du trimestre' : "Résultats de l'examen";
+
+  const ligne = (r, couleur, decisionCls, decisionTxt) => {
+    const mention = getMentionEval(r.moyenne);
+    return `<tr>
+      <td style="text-align:center"><span class="rang">${r.rank}</span></td>
+      <td style="text-align:left;font-weight:500">${esc(r.label)}</td>
+      <td style="text-align:center"><b style="color:${couleur}">${r.moyenne.toFixed(2)}/10</b></td>
+      <td style="text-align:center"><span class="mention-badge mention-${mention.code}">${mention.label}</span></td>
+      <td style="text-align:center"><span class="${decisionCls}">${decisionTxt}</span></td>
+    </tr>`;
+  };
+
+  zone.innerHTML = `
+    <div class="eval-resultats">
+      <h3>📋 ${titre} <small>${libelle} · ${esc(s.classe)}</small></h3>
+      <div class="eval-stats">
+        <div class="eval-stat"><div class="n">${rows.length}</div><div class="l">Candidats</div></div>
+        <div class="eval-stat admis"><div class="n">${admis.length}</div><div class="l">Admis</div></div>
+        <div class="eval-stat ajourne"><div class="n">${ajournes.length}</div><div class="l">Ajournés</div></div>
+        <div class="eval-stat taux"><div class="n">${tauxReussite.toFixed(1)}%</div><div class="l">Taux de réussite</div></div>
+        <div class="eval-stat"><div class="n">${moyenneClasse.toFixed(2)}/10</div><div class="l">Moyenne classe</div></div>
+        <div class="eval-stat"><div class="n">${meilleure.toFixed(2)}/10</div><div class="l">Meilleure moyenne</div></div>
+        <div class="eval-stat"><div class="n">${plusBasse.toFixed(2)}/10</div><div class="l">Plus basse moyenne</div></div>
+      </div>
+
+      <h3>🏆 Liste des admis par ordre de mérite <small>(moyenne ≥ ${SEUIL}/10)</small></h3>
+      ${admis.length
+        ? `<div class="eval-table-wrap"><table class="eval-table">
+             <thead><tr>
+               <th style="width:60px">Rang</th>
+               <th style="text-align:left;min-width:180px">Élève</th>
+               <th style="width:130px">Moyenne</th>
+               <th style="width:130px">Mention</th>
+               <th style="width:120px">Décision</th>
+             </tr></thead>
+             <tbody>${admis.map(r => ligne(r, '#1e8449', 'decision-admis', 'Admis(e)')).join('')}</tbody>
+           </table></div>`
+        : '<div class="eval-empty">Aucun élève admis.</div>'}
+
+      ${ajournes.length ? `
+        <h3>❌ Liste des ajournés <small>(moyenne &lt; ${SEUIL}/10)</small></h3>
+        <div class="eval-table-wrap"><table class="eval-table">
+          <thead><tr>
+            <th style="width:60px">Rang</th>
+            <th style="text-align:left;min-width:180px">Élève</th>
+            <th style="width:130px">Moyenne</th>
+            <th style="width:130px">Mention</th>
+            <th style="width:120px">Décision</th>
+          </tr></thead>
+          <tbody>${ajournes.map(r => ligne(r, '#a93226', 'decision-ajourne', 'Ajourné(e)')).join('')}</tbody>
+        </table></div>` : ''}
+
+      <div class="eval-resultats-actions">
+        <button class="btn btn-primary btn-sm" onclick="imprimerResultatsEval('${type}')">🖨 Imprimer les résultats</button>
+      </div>
+    </div>`;
+}
+
+/* ===== NOUVEAU : impression des résultats ===== */
+function imprimerResultatsEval(type){
+  if (type === 'jour') return;
+  const s = evalState[type];
+  const rows = computeEval(type);
+  if (!rows.length) { toast('Aucun résultat à imprimer', 'error'); return; }
+
+  const cfg = window.MonEcoleDocuments.getConfig();
+  const SEUIL = 5;
+  const admis    = rows.filter(r => r.moyenne >= SEUIL).sort((a,b) => b.moyenne - a.moyenne || a.label.localeCompare(b.label, 'fr'));
+  const ajournes = rows.filter(r => r.moyenne <  SEUIL).sort((a,b) => b.moyenne - a.moyenne || a.label.localeCompare(b.label, 'fr'));
+  const moyenneClasse = rows.reduce((x,r) => x + r.moyenne, 0) / rows.length;
+  const meilleure     = Math.max(...rows.map(r => r.moyenne));
+  const tauxReussite  = (admis.length / rows.length) * 100;
+
+  const libelle = type === 'trim'
+    ? `${esc(s.classe)} — ${esc(s.trimestre)}`
+    : `${esc(s.classe)} — Examen blanc ${esc(s.niveau)} du ${formatDate(s.date)}`;
+  const titre = type === 'trim' ? 'RÉSULTATS TRIMESTRIELS' : "RÉSULTATS DE L'EXAMEN BLANC";
+
+  const ligneHTML = (r, couleur, decision) => {
+    const mention = getMentionEval(r.moyenne);
+    return `<tr>
+      <td style="text-align:center;font-weight:bold">${r.rank}</td>
+      <td>${esc(r.label)}</td>
+      <td style="text-align:center;font-weight:bold;color:${couleur}">${r.moyenne.toFixed(2)}/10</td>
+      <td style="text-align:center">${mention.label}</td>
+      <td style="text-align:center">${decision}</td>
+    </tr>`;
+  };
+
+  const entete = `<div style="text-align:center;text-transform:uppercase;font-size:9pt;margin-bottom:22px;line-height:1.5">
+    <div>CIRCONSCRIPTION D'ÉDUCATION DE BASE DE ${esc(cfg.circonscription)}</div>
+    <div>ÉCOLE PRIMAIRE ${esc(String(cfg.ecoleType||'Publique').toUpperCase())} ${esc(cfg.ecole)}</div>
+    <div>Année scolaire : ${esc(cfg.anneeScolaire)}</div></div>`;
+
+  const stats = `<div style="display:flex;gap:12px;flex-wrap:wrap;margin:18px 0">
+    <div style="border:1px solid #999;padding:8px 14px;border-radius:6px"><b style="font-size:16pt;color:#2a5298">${rows.length}</b><br><small>Candidats</small></div>
+    <div style="border:1px solid #999;padding:8px 14px;border-radius:6px"><b style="font-size:16pt;color:#1e8449">${admis.length}</b><br><small>Admis</small></div>
+    <div style="border:1px solid #999;padding:8px 14px;border-radius:6px"><b style="font-size:16pt;color:#a93226">${ajournes.length}</b><br><small>Ajournés</small></div>
+    <div style="border:1px solid #999;padding:8px 14px;border-radius:6px"><b style="font-size:16pt;color:#2a5298">${tauxReussite.toFixed(1)}%</b><br><small>Taux de réussite</small></div>
+    <div style="border:1px solid #999;padding:8px 14px;border-radius:6px"><b style="font-size:16pt">${moyenneClasse.toFixed(2)}/10</b><br><small>Moyenne classe</small></div>
+    <div style="border:1px solid #999;padding:8px 14px;border-radius:6px"><b style="font-size:16pt">${meilleure.toFixed(2)}/10</b><br><small>Meilleure moyenne</small></div>
+  </div>`;
+
+  const tableauAdmis = admis.length
+    ? `<h4 style="margin:22px 0 6px;font-size:12pt;color:#1e8449">🏆 Liste des admis par ordre de mérite (${admis.length})</h4>
+       <table><thead><tr>
+         <th style="width:60px">Rang</th><th>Nom &amp; Prénom(s)</th>
+         <th style="width:120px">Moyenne</th><th style="width:120px">Mention</th>
+         <th style="width:110px">Décision</th></tr></thead>
+       <tbody>${admis.map(r => ligneHTML(r, '#1e8449', 'Admis(e)')).join('')}</tbody></table>`
+    : '<p style="text-align:center;font-style:italic;color:#888;margin:20px 0">Aucun élève admis.</p>';
+
+  const tableauAjournes = ajournes.length
+    ? `<h4 style="margin:22px 0 6px;font-size:12pt;color:#a93226">❌ Liste des ajournés (${ajournes.length})</h4>
+       <table><thead><tr>
+         <th style="width:60px">Rang</th><th>Nom &amp; Prénom(s)</th>
+         <th style="width:120px">Moyenne</th><th style="width:120px">Mention</th>
+         <th style="width:110px">Décision</th></tr></thead>
+       <tbody>${ajournes.map(r => ligneHTML(r, '#a93226', 'Ajourné(e)')).join('')}</tbody></table>`
+    : '';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titre}</title>
+    <style>
+      @page{size:A4 portrait;margin:15mm}
+      body{font-family:"Segoe UI",Tahoma,Arial,sans-serif;font-size:11pt;color:#000}
+      h1{text-align:center;font-size:16pt;text-decoration:underline;margin:14px 0 6px}
+      h3{text-align:center;font-size:11pt;font-weight:normal;margin:0 0 18px}
+      table{width:100%;border-collapse:collapse;margin:6px 0}
+      th,td{border:1px solid #333;padding:5px 7px;font-size:10pt}
+      th{background:#eef2f7;text-align:center;text-transform:uppercase;font-size:9pt}
+      h4{font-size:11pt;margin:18px 0 6px}
+      small{font-size:9pt}
+    </style></head><body>
+      ${entete}
+      <h1>${titre}</h1>
+      <h3>${libelle}</h3>
+      ${stats}
+      ${tableauAdmis}
+      ${tableauAjournes}
+      <p style="text-align:right;margin-top:40px;font-style:italic">
+        Édité le ${formatDate(new Date().toISOString().slice(0,10))}
+      </p>
+    </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) { toast('Autorisez les pop-ups pour imprimer', 'error'); return; }
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => { w.focus(); w.print(); }, 350);
+}
+
+function toggleMatiereJour(id, checked){
+  const s = evalState.jour;
+  let sel = (s.selection || []).filter(x => x !== id);
+  if (checked) {
+    if (sel.length >= 2) { toast('2 matières maximum', 'error'); renderEval('jour'); return; }
+    sel.push(id);
+  }
+  s.selection = sel;
+  renderEval('jour');
+}
+function ajouterEvaluation(type){
+  const s = evalState[type];
+  if (!s.classe) { toast('Classe non définie', 'error'); return; }
+  const dispo = matieresDisponiblesClasse(s.classe);
+  if (!dispo.length) { toast('Ajoutez d’abord des matières dans Paramètres', 'error'); return; }
+  if (type === 'jour') {
+    const sel = s.selection || [];
+    if (!sel.length) { toast('Choisissez au moins une matière', 'error'); return; }
+    if (sel.length > 2) { toast('2 matières maximum', 'error'); return; }
+    s.matieres = dispo.filter(m => sel.includes(m.id)).map(m => ({ id:m.id, nom:m.nom, coef:m.coef, max:m.max }));
+  } else {
+    s.matieres = dispo.map(m => ({ id:m.id, nom:m.nom, coef:m.coef, max:m.max }));
+  }
+  s.notes = {};
+  s.affichee = true;
+  s.key = getEvalKey(type);
+  renderEval(type);
+  toast('Évaluation ajoutée');
+}
+function recommencerEval(type){
+  const s = evalState[type];
+  if (!confirm('Changer les matières ? Les notes saisies seront effacées.')) return;
+  s.affichee = false;
+  s.matieres = [];
+  s.notes = {};
+  if (type === 'jour') s.selection = [];
+  renderEval(type);
+}
+function actualiserMatieresEval(type){
+  const s = evalState[type]; if (!s.classe) return;
+  const dispo = matieresDisponiblesClasse(s.classe);
+  if (!s.affichee) { renderEval(type); toast('Matières actualisées'); return; }
+  if (!confirm('Recharger toutes les matières de la classe ? Les notes saisies seront conservées par nom de matière.')) return;
+  const oldMatieres = s.matieres, oldNotes = s.notes;
+  s.matieres = dispo.map(m => ({ id:m.id, nom:m.nom, coef:m.coef, max:m.max }));
+  const newNotes = {};
+  Object.keys(oldNotes).forEach(k => {
+    newNotes[k] = {};
+    s.matieres.forEach(nm => {
+      const om = oldMatieres.find(x => x.nom === nm.nom);
+      if (om && oldNotes[k][om.id] !== undefined) newNotes[k][nm.id] = oldNotes[k][om.id];
+    });
+  });
+  s.notes = newNotes;
+  renderEval(type);
+  toast('Matières rechargées');
+}
+function sauvegarderEval(type){
+  const key = getEvalKey(type);
+  if (!key){ toast('Sélectionnez une classe et une date/période','error'); return; }
+  const s = evalState[type], store = EVAL_STORE[type]();
+  store[key] = { classe:s.classe, date:s.date, trimestre:s.trimestre, niveau:s.niveau, matieres:JSON.parse(JSON.stringify(s.matieres)), notes:JSON.parse(JSON.stringify(s.notes)), savedAt:new Date().toISOString() };
+  saveEvaluations();
+  toast('Évaluation enregistrée');
+  const el = document.getElementById(EVAL_MAP[type].saveEtat);
+  if (el) { el.textContent = `✓ Enregistré · ${Object.keys(s.notes).length} élève(s)`; el.classList.add('visible'); setTimeout(() => el.classList.remove('visible'), 2500); }
+}
+function activerEvalSub(id){
+  const section = document.getElementById('tab-evaluations'); if (!section) return;
+  section.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+  section.querySelectorAll('.sub-tab-panel').forEach(p => p.classList.remove('active'));
+  const btn = section.querySelector(`.sub-tab-btn[onclick="activerEvalSub('${id}')"]`);
+  if (btn) btn.classList.add('active');
+  const panel = section.querySelector(`#${id}`);
+  if (panel) panel.classList.add('active');
+  if (id === 'eval-jour') onEvalChange('jour');
+  if (id === 'eval-trim') onEvalChange('trim');
+  if (id === 'eval-exam') onEvalChange('exam');
+}
+
+
+/* =========================================================
+   Cartes d'identité scolaire — recto / verso, 10 par page A4
+   ========================================================= */
+const ModCartes = (function () {
+  const W = 89.7, H = 55.82, EPAIS = 0.35;
+  const COLS = 2, LIGNES = 5, PAR_PAGE = COLS * LIGNES;
+  const GAP = 1.5;
+  const PT = 25.4 / 72;
+  const F_TAHOMA  = "Tahoma, 'Liberation Sans', Arial, 'DejaVu Sans', sans-serif";
+  const F_CALIBRI = "Calibri, Carlito, 'Segoe UI', Arial, sans-serif";
+  const F_GEORGIA = "Georgia, 'Times New Roman', 'Liberation Serif', serif";
+  const ARMOIRIES_DEFAUT = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAeAB4AAD/2wBDAA0JCgsKCA0LCwsPDg0QFCEVFBISFCgdHhghMCoyMS8qLi00O0tANDhHOS0uQllCR05QVFVUMz9dY1xSYktTVFH/2wBDAQ4PDxQRFCcVFSdRNi42UVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVH/wAARCAByAGkDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD01elLSL0paSAZJko23g44rG8N60NTinglIF3bOUkX154NbTuqqWZgAOSSXBgWOjeJxeiVgtyx3uvT6Y70N2Glc70YpeKyZ9UwuYgAp53P/hVJ9TnO7ErYA7YGaiVSMd2Fjo+KTIrmIrueSVR9pnQnPRgcfpUkGq3MbbWmEntKuDj6ikqsWFjoyRXP/wBti68TppdowKQgtOw7nstT3Ot2qWTPcboyy9F5z9DWP4PtbVZn1IMEecttUjtn171d0FjsRS0ZFFUIB0ooooAQdKgu7tLZAT8zHhVHUmi4nWCLcRk9FUdzWYDudppJFaTvg8KPT2oQCymS45uCCByEX7o+vrVWdI2mS58nzEiBDSBc7B7Vdt7Vrv53ysHYdC/+ArSESLF5YQBcYwOlJj6mHptpFfW4njl3QsTtY9TWgNItP41Z/wDeNZXh1zY6nfaQ/AVvNiH+ya6UYxUQjFLRDloyidIsccW6g+oJBqGXRYGHySOp7bvmArVpjsFQseABkmqaXUm5zTeXZX32GRTJNKp2KoypHv6VZiRII1tni8r0Qj5T9Kr+H86lq17q7j5c+TD/ALo6muhlgjmjKSKGU+tKCSQ5aMz0nmtsYJki7qeo+laUUqSxh0bKnoay5Y3tHCu26JuFc9R7GmxXC2s5AZQrfeQHp7irEbQopFIKgjkGloApz2Uc8oeVnIAwFBwKoWVrHcSykR7LZXwFA++R/StrtUF0/kWksi8bVJGBQgHJPCZGiV1Lr1UHpUprmoRttEeSOR3kHmM8Y5Zq1NLNy5d5T+5IHlgnJpAZHiQHT9YsNXQnareVL7qa6ZWDAMDwRkVmeI4kuNDukcBsISPY9q5nTPHEVtp8MNzayySou0spGDUc6i7M6KdCpWj7ivY7vNYXiu9e30swQf8AHxcsIk/Gso+P7XtYTf8AfQqrZawniHxZaM8LJFCpKIT/ABetJ1IvRGjwdaC5pxskdfpVkunabBaoPuIAfc96tySJGpZ2CgdzTSd6MEcZxjI5wawcTq+y4jNxKn8aNkD0zWpxm1HJBf2x2kPGeDVCGxja7lhuYRINo2uR1H19ai06Ro9WMRIUSxbjGDwD61t4/OgBsESQQrFGCFXgZOakoFFAEU88dvEZZmCoOpNRRT2+o2zeW2+NhtIwQap+IF/0NJME7W6A1naRO9vdSNKpKMvAjy1ICSzgnsLuSwkYyQAboWPBUf3atmSS1ikMWNpPI/u+pFOd2mnE7jZgYVT2+tNkOBwCxP8ACoyTQBnXkoj0+4G0+VJEcNnOfevN88V3niVLh9KYRF4nhGQGXkr3BH9a4K2unhnSQMRg84GeK5MQtdD0MJmNPBpqa3JpreWFY2dcCRdy/StPwvL5OtxnByUKjHao9U8QNeWwiiTyipx0B3D+lVdBSW51eBEkZRyW29SO4rCgpNpyVjepnNKtTdO2rPSbeWWGcRooWRhkjsV9T71K/wC6hdgATyxz3NMiMpPmvA4UgKr54C1PgOpGcqR+dekeQRaHp7QB765YtczdS38K9gKtHV7UXQgO/k434+XPpmoRcTQwGLyzIoUhWU8j6isG3U+fGjOrB3wR6ZPrQB2g6UUijaoA7UtMDP1iJptPcAbtvzEeuKyNGjdQtw5G2ZSEA7YNdFKdsLtxwCeawrXUPtixbQnmoD8oGBuJpAJfT3qX8FtarHiUEtI//LMD271p6ZCqwmRj5khJBc9f/rUjWJEO5Tvnznc3f29qZDcPaHy5oiqscg9cf40wKOust5dHTIjtuXhYqzZwQfSvMb7TL7TpTHd20kZHG4jg/jXtSrHIVlAVmxgMBWH4vnCaULRFDS3TCNARnrWVSCauZzpe00PKFRmcKqlmJwAOprrPDnh7UbWU6ndx+RDEh+VvvMPpV/UfD0Phy3ttUsd5lgdTLuOeO9dtbTJc28cyEFJFDDvnNRTppPUiFDktJkWl3C3mmwzqpVHXgMMVmapHPE07WEoikRQwRhlGPoR/hWld30NqfLBUyY4TOKrw21xPN50oVQ+C2euOwA7V0G5XtJXfTo5psF2TLY9fSqltYTx6pHEATEyiUsRwvPSte9thGjTRkKCf3inoR/jVG31Jm1S1szIVCqd4Pf8Au5pAzoB0ooHSimBma7dW9rpMzXMpjV12BlGTk9K43wgb7Yzb1liZ2xgYbIrs9at5JrINEyrJEwkXeMg47Vz2n6jOmpqYrTyLa5csDIwwWxyB6VPUh7m/pOsWmpeZHBKHlh4kXGCtXri3iurdoZl3IwwR0plsYGZmjjVJD94BcH8asdqosq6fYW+m2wt7YMIwc4Zi386w8DVPF+770Fiv4FzW1qt6mn6dNcyHARePc1zmiXLaZZZlj/0i4YyyE+/QVD1di46K5095bJd2ktvIMrIpUisHwhO0UdxpMx/e2j4UeqnpVo64ygMUXBGRweayL25+yava65Gu2GQ+VOB2z0ND01COqcTqDpVi1/8AbmtkNz/z0PJq2aRGDqGU5BGQaWrIMB9RbUr6azgglVYM7mkQhSfY965Xy5bDxULy4W6u1RBIwQcIT0z7Cu51K8FvZSyruIUdVGefaub02LU7pzb36LHFcMHeWPO5gOiH0+tSyZI7ONt8auOjDNOpEAVAo6AYpaoobgMMEZqjPaxL/rIVliznBHK/Sr46UcUgMa7ujBN5joViOAk0fOPrV2O8xGrTcKRkSD7p/wAKfJajJaPC5+8hGVamvN5UDhoipCnCgcH6UK4GHrzPqV5ZWcQJtDJvllx8vHbNTjTjPI0kl5Gqk/Kq44H1qfRdXgu7UIbaa3ZcgpJGRVi6jScqYbhIyOvyA5pbDvpYzotJO9/O1JSo4Tb1Aon06OTT7q0ku0mWRfkAHINSrb3hP/H1aLg9ohyK1kdEUDgnHO1aSfMC02MrQrq4t9LhttQjdLhBtAxkuo6GrN5e+VGGnyqscLEhy7VVn1ac6zBbR6bOYgTvuGGAB7DvVyK0U3DTrFsZjy78n8B2p2drIQ63uZWixJbCNyfkjznj1PpViGHYS7ndIep9PYVJFEkWdo5PUnqakpoAHSigdKKYBRRRUAFGB6UUUAAAHQCkKKeqg/hRRQAgjjHRFH4U7A9KKKBBRiiigYYFFFFABRRRVgf/2Q==';
+
+  function t(x, y, texte, o = {}) {
+    const attrs = [
+      `x="${x}"`, `y="${y}"`,
+      `font-family="${o.f || F_TAHOMA}"`,
+      `font-size="${(o.pt || 8.01) * PT}"`,
+      o.gras ? 'font-weight="700"' : '',
+      o.italique ? 'font-style="italic"' : '',
+      o.fill ? `fill="${o.fill}"` : '',
+      o.ancre ? `text-anchor="${o.ancre}"` : '',
+      o.max ? `data-max="${o.max}"` : '',
+      o.contour ? `stroke="#fff" stroke-width="${o.contour}" paint-order="stroke" stroke-linejoin="round"` : '',
+      o.fit ? 'data-fit="1"' : '',
+      o.ul ? 'data-ul="1"' : ''
+    ].filter(Boolean).join(' ');
+    return `<text ${attrs}>${esc(texte)}</text>`;
+  }
+  function img(src, x, y, w, h, mode) {
+    if (!src) return '';
+    const s = esc(src);
+    return `<image href="${s}" xlink:href="${s}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${mode || 'xMidYMid meet'}"/>`;
+  }
+  function etoile(cx, cy, R) {
+    const pts = [];
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 ? R * 0.382 : R, a = (-90 + i * 36) * Math.PI / 180;
+      pts.push((cx + r * Math.cos(a)).toFixed(3) + ',' + (cy + r * Math.sin(a)).toFixed(3));
+    }
+    return `<polygon points="${pts.join(' ')}" fill="#fee833"/>`;
+  }
+  const svg = (corps) => `<svg class="carte-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${W} ${H}" width="${W}mm" height="${H}mm">${corps}</svg>`;
+
+  function recto(e) {
+    const cfg = e.cfg;
+    const typeEcole = String(cfg.ecoleType || 'Publique').toUpperCase();
+    const annee = String(cfg.anneeScolaire || '').replace(/\s*-\s*/g, '/');
+    const arm = cfg.armoiries || ARMOIRIES_DEFAUT;
+    const cachet = cfg.signatureCachet || cfg.signature;
+    const corpsDir = String(cfg.directeurGrade || '').trim();
+    const GRIS_DIR = '#AEABAB';
+    const V = { f: F_CALIBRI, pt: 9.02, gras: true };
+    return svg(`
+      <rect x="${EPAIS / 2}" y="${EPAIS / 2}" width="${W - EPAIS}" height="${H - EPAIS}" fill="#fff" stroke="#dfa7a5" stroke-width="${EPAIS}"/>
+      <g transform="translate(0.91 0.99)">
+        <rect width="13.69" height="3.8" fill="#fa0b0e"/><rect y="3.8" width="13.69" height="3.92" fill="#248744"/>
+        ${etoile(6.85, 3.85, 1.5)}
+      </g>
+      ${img(arm, 74.63, 0.72, 13.74, 14.82)}
+      ${t(44.31, 4.34, "CIRCONSCRIPTION D'EDUCATION DE BASE", { pt: 7.03, gras: true, ancre: 'middle', max: 59.5 })}
+      ${t(44.31, 7.51, 'DE ' + cfg.circonscription, { pt: 7.03, gras: true, ancre: 'middle', max: 57, ul: true })}
+      <rect data-ul-rect="1" x="35.53" y="8.5" width="17.52" height="0.36" fill="#000"/>
+      ${t(44.31, 12.28, 'ECOLE PRIMAIRE ' + typeEcole, { pt: 7.03, gras: true, ancre: 'middle', max: 59.5 })}
+      ${t(44.31, 15.46, cfg.ecole, { pt: 7.03, gras: true, ancre: 'middle', max: 59.5 })}
+      ${t(1.70, 22.05, "CARTE D'IDENTITE SCOLAIRE", { f: F_GEORGIA, pt: 10.03, gras: true, fill: '#f00' })}
+      <line x1="1.70" y1="22.37" x2="59.33" y2="22.37" stroke="#f00" stroke-width="0.212"/>
+
+      ${t(1.96, 28.24, 'Matricule :')}${t(16.32, 28.43, e.matricule, Object.assign({ max: 18.4 }, V))}
+      <rect x="35.53" y="25.06" width="28.61" height="3.98" fill="none" stroke="none"/>
+      <line x1="45.95" y1="25.06" x2="45.95" y2="29.04" stroke="none"/>
+      ${t(35.72, 28.22, 'N° PV :')}${t(46.7, 28.43, e.pv, Object.assign({ max: 17 }, V))}
+      ${t(1.96, 32.21, 'Nom :')}${t(10.73, 32.41, e.nom, Object.assign({ max: 53.3 }, V))}
+      ${t(1.96, 36.18, 'Prénom(s) :')}${t(17.65, 36.38, e.prenoms, Object.assign({ max: 46.3 }, V))}
+      ${t(1.96, 40.15, 'Né(e) le :')}${t(15.31, 40.29, e.naissance, Object.assign({ max: 48.7 }, V))}
+      ${t(1.96, 44.13, 'Lieu :')}${t(9.94, 44.31, e.lieu, Object.assign({ max: 54 }, V))}
+      ${t(1.96, 48.09, 'Sexe :')}${t(10.47, 48.28, e.sexe, V)}
+      ${t(15.00, 48.09, 'Classe :')}${t(25.37, 48.28, e.classe, Object.assign({ max: 7.5 }, V))}
+      ${t(33.19, 48.33, 'Tél parent:', { f: F_CALIBRI, pt: 9.02 })}${t(48.50, 48.33, e.tel, Object.assign({ max: 15.5 }, V))}
+
+      <rect data-fit-rect="1" x="1.79" y="49.98" width="50" height="4.43" fill="#000"/>
+      ${t(2.87, 53.12, 'ANNEE SCOLAIRE : ' + annee, { pt: 8.01, gras: true, fill: '#fff', fit: true })}
+
+      ${e.photo ? img(e.photo, 65.57, 16.87, 23.16, 23.22, 'xMidYMid slice')
+                : '<rect class="photo-vide" x="65.57" y="16.87" width="23.16" height="23.22"/>'}
+      <rect x="65.57" y="40.15" width="23.27" height="14.65" fill="#fff"/>
+      ${cachet ? img(cachet, 65.57, 40.15, 23.27, 14.65, 'xMidYMid slice') : ''}
+      ${t(77.205, 50.32, cfg.directeurNom, { pt: 7.4, gras: true, ancre: 'middle', max: 22.3, fill: GRIS_DIR })}
+      ${corpsDir ? t(77.205, 53.82, corpsDir, { pt: 8, italique: true, ancre: 'middle', max: 22.3, fill: GRIS_DIR }) : ''}
+      <rect x="65.57" y="40.15" width="23.27" height="14.65" fill="none" stroke="none"/>
+    `);
+  }
+
+  function verso(e) {
+    const cfg = e.cfg;
+    const arm = cfg.armoiries || ARMOIRIES_DEFAUT;
+    const contact = cfg.contactDirecteur || cfg.telephone || '';
+    const L = { pt: 7.03, gras: true, ancre: 'middle', max: 80 };
+    return svg(`
+      ${t(45.35, 4.39, "MINISTERE DE L'EDUCATION DE BASE,", L)}
+      ${t(45.35, 7.57, "DE L'ALPHABETISATION ET DE LA", L)}
+      ${t(45.35, 10.75, 'PROMOTION DES LANGUES NATIONALES', L)}
+      ${img(arm, 30.42, 15.75, 28, 30.24)}
+      ${t(45.40, 53.12, 'Contact du Directeur : ' + contact, { pt: 8.01, gras: true, ancre: 'middle', max: 80 })}
+    `);
+  }
+
+  function ajuster(racine) {
+    racine.querySelectorAll('svg.carte-svg').forEach(s => {
+      try {
+        s.querySelectorAll('text[data-max]').forEach(el => {
+          const max = parseFloat(el.dataset.max), len = el.getComputedTextLength();
+          if (len > max) { el.setAttribute('textLength', max); el.setAttribute('lengthAdjust', 'spacingAndGlyphs'); }
+        });
+        const fit = s.querySelector('text[data-fit]'), r = s.querySelector('rect[data-fit-rect]');
+        if (fit && r) r.setAttribute('width', Math.max(50, fit.getComputedTextLength() + 4).toFixed(2));
+        const ul = s.querySelector('text[data-ul]'), ur = s.querySelector('rect[data-ul-rect]');
+        if (ul && ur) {
+          const w = ul.getComputedTextLength() + 1.06, cx = parseFloat(ul.getAttribute('x'));
+          ur.setAttribute('width', w.toFixed(2)); ur.setAttribute('x', (cx - w / 2).toFixed(2));
+        }
+      } catch (err) { }
+    });
+  }
+
+  const PAS_X = W + GAP, PAS_Y = H + GAP;
+  const MARGE_X = (210 - (COLS * W + (COLS - 1) * GAP)) / 2;
+  const MARGE_Y = (297 - (LIGNES * H + (LIGNES - 1) * GAP)) / 2;
+  function feuille(cartes, miroir) {
+    const html = cartes.map((c, i) => {
+      let col = i % COLS; const lig = Math.floor(i / COLS);
+      if (miroir) col = COLS - 1 - col;
+      const x = (MARGE_X + col * PAS_X).toFixed(2), y = (MARGE_Y + lig * PAS_Y).toFixed(2);
+      return c.replace('<svg class="carte-svg"', `<svg class="carte-svg" style="left:${x}mm;top:${y}mm"`);
+    }).join('');
+    return `<div class="cartes-feuille">${html}</div>`;
+  }
+  function planches(liste, mode) {
+    const pages = [];
+    for (let i = 0; i < liste.length; i += PAR_PAGE) {
+      const lot = liste.slice(i, i + PAR_PAGE);
+      if (mode !== 'verso') pages.push(feuille(lot.map(recto), false));
+      if (mode !== 'recto') pages.push(feuille(lot.map(verso), true));
+    }
+    return pages.join('');
+  }
+
+  return { recto, verso, planches, ajuster, PAR_PAGE };
+})();
+
+const etatCartes = { coches: new Set(), actif: null };
+const racineCartes = document.createElement('div'); racineCartes.id = 'cartes-print'; document.body.appendChild(racineCartes);
+window.addEventListener('afterprint', () => { racineCartes.innerHTML = ''; });
+
+function dateCarte(d) { const x = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ''); return x ? `${x[3]}/${x[2]}/${x[1]}` : (d || ''); }
+function donneesCarte(c) {
+  const ph = c.documents && c.documents.photo && c.documents.photo.contenu;
+  return {
+    cfg: window.MonEcoleDocuments.getConfig(),
+    matricule: c.matricule || '', pv: c.pv || '',
+    nom: String(c.nom || '').toUpperCase(), prenoms: c.prenoms || '',
+    naissance: dateCarte(c.dateNaiss), lieu: c.lieuNaiss || '',
+    sexe: c.sexe || '', classe: c.classe || classeParam, tel: c.contact || '',
+    photo: ph || ''
+  };
+}
+function cartesACibler() {
+  const coches = candidats.filter(c => etatCartes.coches.has(c.matricule));
+  return coches.length ? coches : candidats;
+}
+function imprimerCartes(mode) {
+  const liste = cartesACibler();
+  if (!liste.length) { toast('Aucun candidat', 'error'); return; }
+  racineCartes.innerHTML = ModCartes.planches(liste.map(donneesCarte), mode);
+  ModCartes.ajuster(racineCartes);
+  window.print();
+}
+
+function renderCartes() {
+  const corps = document.querySelector('#cartes-liste tbody');
+  if (!corps) return;
+  if (!etatCartes.actif || !candidats.some(c => c.matricule === etatCartes.actif)) etatCartes.actif = candidats[0] ? candidats[0].matricule : null;
+  etatCartes.coches = new Set([...etatCartes.coches].filter(m => candidats.some(c => c.matricule === m)));
+  corps.innerHTML = candidats.map(c => `
+    <tr data-m="${esc(c.matricule)}" class="${c.matricule === etatCartes.actif ? 'actif' : ''}">
+      <td><input type="checkbox" ${etatCartes.coches.has(c.matricule) ? 'checked' : ''} aria-label="Cocher ${esc(c.nom)} ${esc(c.prenoms)}"></td>
+      <td>${esc(c.nom)} ${esc(c.prenoms)}</td>
+      <td>${esc(c.matricule)}</td>
+      <td>${esc(c.classe || classeParam)}</td>
+      <td style="text-align:center">${c.documents && c.documents.photo && c.documents.photo.contenu ? '✓' : '—'}</td>
+    </tr>`).join('') || '<tr><td colspan="5" class="empty">Aucun candidat</td></tr>';
+  const n = etatCartes.coches.size, total = candidats.length, cible = n || total;
+  document.getElementById('cartes-compte').textContent = n
+    ? `${n} candidat${n > 1 ? 's' : ''} coché${n > 1 ? 's' : ''} · ${Math.ceil(n / 10)} page${Math.ceil(n / 10) > 1 ? 's' : ''} de cartes`
+    : `Aucun coché : les ${total} candidats seront imprimés · ${Math.ceil(total / 10)} page${Math.ceil(total / 10) > 1 ? 's' : ''} de cartes`;
+  document.getElementById('cartes-tout').checked = total > 0 && n === total;
+  ['cartes-imp-recto', 'cartes-imp-verso', 'cartes-imp-rv'].forEach(id => document.getElementById(id).disabled = !cible);
+
+  const c = candidats.find(x => x.matricule === etatCartes.actif);
+  const apercu = document.getElementById('cartes-apercu');
+  if (!c) { apercu.innerHTML = '<p class="helper">Ajoutez un candidat pour voir l\'aperçu.</p>'; return; }
+  const d = donneesCarte(c);
+  apercu.innerHTML = `
+    <figure><figcaption>Recto</figcaption>${ModCartes.recto(d)}</figure>
+    <figure><figcaption>Verso</figcaption>${ModCartes.verso(d)}</figure>`;
+  ModCartes.ajuster(apercu);
+}
+
+document.getElementById('cartes-liste').addEventListener('click', e => {
+  const tr = e.target.closest('tr[data-m]'); if (!tr) return;
+  const m = tr.dataset.m;
+  if (e.target.matches('input[type=checkbox]')) { e.target.checked ? etatCartes.coches.add(m) : etatCartes.coches.delete(m); }
+  etatCartes.actif = m; renderCartes();
+});
+document.getElementById('cartes-tout').addEventListener('change', e => {
+  candidats.forEach(c => e.target.checked ? etatCartes.coches.add(c.matricule) : etatCartes.coches.delete(c.matricule));
+  renderCartes();
+});
+document.getElementById('cartes-imp-recto').addEventListener('click', () => imprimerCartes('recto'));
+document.getElementById('cartes-imp-verso').addEventListener('click', () => imprimerCartes('verso'));
+document.getElementById('cartes-imp-rv').addEventListener('click', () => imprimerCartes('rv'));
+
+/* =========================================================
+   Init
+   ========================================================= */
+buildForm();
+buildDocsForm();
+renderListe();
+renderPVTab();
+window.MonEcoleDocuments.init({ candidats: candidats.map(versCandidatDocument), onSelect: majTitreApercu });
+renderParametres();
+if (!Object.keys(classesMatieres).some(k => (classesMatieres[k] || []).length)) {
+  prefillToutesMatieres();
+}
+renderClassesMatieres();
+initEvalSelects();
+</script>
+</body>
+</html>
