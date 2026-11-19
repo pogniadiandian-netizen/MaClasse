@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Profil utilisateur authentifié et rôle au sein de l'école primaire",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "poste": {
+          "type": "string",
+          "enum": ["directeur", "titulaire", "suppleant", "gestionnaire"],
+          "maxLength": 32
+        },
+        "classeAssignee": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "displayName", "poste", "classeAssignee", "createdAt", "updatedAt"]
+    },
+    "StatisticalReport": {
+      "title": "StatisticalReport",
+      "description": "Rapport statistique officiel (Rentrée ou Fin d'année) sauvegardé par l'utilisateur",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "reportKind": {
+          "type": "string",
+          "enum": ["prim_debut", "prim_fin"],
+          "maxLength": 20
+        },
+        "anneeScolaire": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 20
+        },
+        "ecole": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "payload": {
+          "type": "object"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "reportKind", "anneeScolaire", "ecole", "payload", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Profils utilisateurs privés et attribution de rôle scolaire"
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/StatisticalReport" },
+      "description": "Rapports statistiques de rentrée et de fin d'année par propriétaire"
+    }
+  }
+}
